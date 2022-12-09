@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="cs41LH" name="HummingBot" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
   <MAINGROUP id="t8Ykd4" name="HummingBot">
     <GROUP id="{62D68105-60D2-D0DF-93AB-CEF2DC08FCBE}" name="Source">
+      <FILE id="Crw8V0" name="AddSynth.h" compile="0" resource="0" file="Source/AddSynth.h"/>
+      <FILE id="fc8l9u" name="Chorus.h" compile="0" resource="0" file="Source/Chorus.h"/>
+      <FILE id="jmv7cw" name="debugResolutionTool.h" compile="0" resource="0"
+            file="Source/debugResolutionTool.h"/>
+      <FILE id="sVzCWo" name="DelayedOscArray.h" compile="0" resource="0"
+            file="Source/DelayedOscArray.h"/>
+      <FILE id="IdRRa1" name="DelayLine.h" compile="0" resource="0" file="Source/DelayLine.h"/>
+      <FILE id="YNNUzh" name="Envelope.h" compile="0" resource="0" file="Source/Envelope.h"/>
+      <FILE id="n5rLJ6" name="FilterSynth.h" compile="0" resource="0" file="Source/FilterSynth.h"/>
+      <FILE id="KVyXEX" name="FmSineOsc.h" compile="0" resource="0" file="Source/FmSineOsc.h"/>
+      <FILE id="BS3gLH" name="Harmonizer.h" compile="0" resource="0" file="Source/Harmonizer.h"/>
+      <FILE id="dB94UP" name="Oscillators.h" compile="0" resource="0" file="Source/Oscillators.h"/>
       <FILE id="bUcd00" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="nQPVp1" name="PluginProcessor.h" compile="0" resource="0"
