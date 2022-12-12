@@ -52,9 +52,8 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 {
     
     
-    buffer.clear();//-----------clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
-    midiMessages.clear();//-----clear the Audio buffer of any potential Audio that remained there from previous cycle
-    
+    buffer.clear();//------------------------*clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
+    midiProcessor.process(midiMessages);//---*process the incoming MIDI messages
     
     
     
