@@ -10,6 +10,57 @@ class HarmonyResolver {
     
 public:
     
+   
+    std::string numberToNote (int note) {
+        
+        std::string noteName;
+        note = (note + 12) % 12;
+
+        switch(note) {
+                
+            case 0:
+                noteName = "C";
+                break;
+            case 1:
+                noteName = "Db";
+                break;
+            case 2:
+                noteName = "D";
+                break;
+            case 3:
+                noteName = "Eb";
+                break;
+            case 4:
+                noteName = "E";
+                break;
+            case 5:
+                noteName = "F";
+                break;
+            case 6:
+                noteName = "F#";
+                break;
+            case 7:
+                noteName = "G";
+                break;
+            case 8:
+                noteName = "Ab";
+                break;
+            case 9:
+                noteName = "A";
+                break;
+            case 10:
+                noteName = "Bb";
+                break;
+            case 11:
+                noteName = "B";
+                break;
+        }
+        return noteName;
+    }
+    
+/**
+ this class will resolve a 1-4 note input with all the possible major scales they coulud belong to
+ */
     void findNewMajScale (std::vector<int> noteInput)
     {
         int majorScaleSize = *(&majorScale + 1) - majorScale;
@@ -62,7 +113,7 @@ public:
                     }
                     
                     if (j == majorScaleSize - 1 && found == 0){
-                        if(debug) std::cout << "DEBUG " << nameTag << " note "<< i <<" I couldn't find note " << noteInput[i] << " within the major scale" << majorScaleNumber << "\n Proceding with next major scale\n\n";
+                        if(debug) std::cout << "DEBUG " << nameTag << " note "<< i <<" I couldn't find note " << noteInput[i] << " within the  " << numberToNote(majorScaleNumber) << " major scale. \n Proceding with next major scale.\n\n";
                         isThisTheNextScale = false;
                     }
                     
@@ -70,12 +121,14 @@ public:
                 }
                 
                 if(isThisTheNextScale == false){
-                    if(debug) std::cout << "DEBUG " << nameTag << " note "<< i <<" not found in major scale, extiting loop \n";
+                    if(debug) std::cout << "DEBUG " << nameTag << " note "<< i <<" not found in major scale, extiting loop. \n";
                     i = noteInput.size(); //exit the for loop
                 }
-                if(debug) std::cout << "DEBUG " << nameTag << " the result of this calculation is that isThisTheNextScale for major Scale number "<< majorScaleNumber <<" is " << isThisTheNextScale << "\n\n";
+                if(debug) std::cout << "DEBUG " << nameTag << " the result of this calculation is that isThisTheNextScale for major Scale number "<< numberToNote(majorScaleNumber) <<" is " << isThisTheNextScale << ".\n\n";
             }
             if (isThisTheNextScale) majorScaleNumber = 12;
+            if (!isThisTheNextScale && majorScaleNumber == 11)
+                if(debug) std::cout << "DEBUG " << nameTag << " - couldn't find any possible major scale.\n\n";
         }
     }
     
