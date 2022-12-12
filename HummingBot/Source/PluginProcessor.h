@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "MidiProcessor.h"
+#include "harmonyResolver.h"
 //==============================================================================
 /**
 */
@@ -60,6 +61,7 @@ private:
     
     
     MidiProcessor midiProcessor;
+    HarmonyResolver hr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HummingBotAudioProcessor)
 };
