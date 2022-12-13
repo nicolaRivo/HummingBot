@@ -16,6 +16,7 @@
       <FILE id="YNNUzh" name="Envelope.h" compile="0" resource="0" file="Source/Envelope.h"/>
       <FILE id="UHugIC" name="harmonyResolver.h" compile="0" resource="0"
             file="Source/harmonyResolver.h"/>
+      <FILE id="Q5MQj0" name="utilities.h" compile="0" resource="0" file="Source/utilities.h"/>
       <FILE id="n5rLJ6" name="FilterSynth.h" compile="0" resource="0" file="Source/FilterSynth.h"/>
       <FILE id="KVyXEX" name="FmSineOsc.h" compile="0" resource="0" file="Source/FmSineOsc.h"/>
       <FILE id="BS3gLH" name="Harmonizer.h" compile="0" resource="0" file="Source/Harmonizer.h"/>
