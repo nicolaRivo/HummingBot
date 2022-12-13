@@ -19,6 +19,7 @@ public:
         juce::MidiBuffer::Iterator it(midiMessages);
         juce::MidiMessage currentMessage;
         int samplePos;
+        std::vector<std::string> possibleMajorScales;
         
         while (it.getNextEvent(currentMessage, samplePos))
         {
@@ -54,10 +55,12 @@ public:
                     {
                         bool isNewNote = 1;
                         int newNote = currentMessage.getNoteNumber() % 12;
-                        
+                
                         //check wether the newly received note already exists within the newNotesCollection
-                        if(newNotesCollection.size()>0){
-                            for (int i=0; i< newNotesCollection.size(); i++){
+                        if(newNotesCollection.size()>0)
+                        {
+                            for (int i=0; i< newNotesCollection.size(); i++)
+                            {
                                 if (newNotesCollection[i] == newNote)
                                     isNewNote = 0;
                             }
@@ -67,13 +70,11 @@ public:
 
                         if(isNewNote)
                             newNotesCollection.push_back(newNote);
+                        
                          if(debug) std::cout << "Vector length = " << newNotesCollection.size() << "\n";
-
-
+                        
                         if ( newNotesCollection.size() > maxHarmonyInput )
                             newNotesCollection.erase(newNotesCollection.begin() );
-
-
                     }
                     
                     
@@ -92,7 +93,19 @@ public:
                         
                          if(debug) std::cout << "\n";
                         storedNotesCollection = newNotesCollection;
-                        hr.findNewMajScale(storedNotesCollection);
+                        
+                        possibleMajorScales = hr.findNewMajScale(storedNotesCollection);
+                        
+                        
+                        std::string nextHarmony = findNearestHarmony(currentHarmony, possibleMajorScales);
+                        
+                        if(debug) std::cout << "Old harmony was " << currentHarmony << "\n";
+                        if(debug) std::cout << "Next harmony is " << nextHarmony << "\n";
+                        currentHarmony = nextHarmony;
+                        if(debug) std::cout << "New harmony is " << currentHarmony << "\n";
+
+
+                        
                         //clear the notes collection vector
                         newNotesCollection.clear();
                         
@@ -104,6 +117,81 @@ public:
         }
     }
     
+    
+    
+    std::string findNearestHarmony(std::string currentHarmony, std::vector<std::string> possibleHarmonies, std::string mode = "nearest")
+    {
+        std::vector<int> harmonyDistances;//this vector will collect all the result of the harmonic distances calculations
+        int currentHarmonyAccidentals = accidentals[currentHarmony]; //how many accidentals does my current harmony have?
+        
+        std::cout << "my current harmony is " << currentHarmony <<"\n\n";
+        
+        for (int i = 0; i < possibleHarmonies.size(); i++)
+        {
+            std::cout << "checking distance with " << possibleHarmonies[i] <<"\n\n";
+
+            std::string checkingHarmony = possibleHarmonies[i]; //select a harmony from the vector of possible harmonies
+            int checkingHarmonyAccidentals = accidentals[checkingHarmony];//how many accidentals does the harmony I am currently chacking have?
+            
+            //check distance from current harmony and checking harmony going flat
+            bool foundFlatDistance = false;
+            int checkFlatDistance = currentHarmonyAccidentals;
+            int flatDistance = 0;
+
+            while(foundFlatDistance == false)
+            {
+                if(checkFlatDistance == -7)
+                    checkFlatDistance = 5;
+                
+                if(checkingHarmonyAccidentals == checkFlatDistance)
+                    foundFlatDistance = true;
+                else
+                {
+                    flatDistance++;
+                    checkFlatDistance--;
+                }
+            }
+            
+            
+            //check distance from current harmony and checking harmony going sharp
+            bool foundSharpDistance = false;
+            int checkSharpDistance = currentHarmonyAccidentals;
+            int sharpDistance = 0;
+
+            while(foundSharpDistance == false)
+            {
+                if(checkSharpDistance == 6)
+                    checkSharpDistance = -6;
+                
+                if(checkingHarmonyAccidentals == checkSharpDistance)
+                    foundSharpDistance = true;
+                else
+                {
+                    sharpDistance++;
+                    checkSharpDistance++;
+                }
+            }
+            
+            //wich one of the two was shorter?
+            if (sharpDistance<flatDistance)
+                harmonyDistances.push_back(sharpDistance); //sharp distance was smaller, so we will record this value
+            else
+                harmonyDistances.push_back(flatDistance); //flat distance was smaller, so we will record this value
+        }
+        
+        
+        //check wich value in the harmonyDistances vector is the smallest and obtainging its index
+        int smallestIndex = 0;
+        for(int i = 1; i < harmonyDistances.size() ; i++)
+        {
+            if (harmonyDistances[i] < harmonyDistances[smallestIndex])
+                smallestIndex = i;
+        }
+        std::cout << "the closest harmony is " << possibleHarmonies[smallestIndex] <<"\n\n";
+        
+        return possibleHarmonies[smallestIndex];
+    }
+    
     std::vector<int> getsStoredNotesCollection()
     {
         return storedNotesCollection;
@@ -111,13 +199,16 @@ public:
     
     
 private:
-    bool debug = 0;
+    bool debug = 1;
     bool enterHarmonyMode = 1;
     int maxHarmonyInput = 4;
     std::vector<int> newNotesCollection;
-    
+    std::string currentHarmony = "C";
     std::vector<int> storedNotesCollection;
 
+    std::map<std::string, int> accidentals = {
+        {"C",0}, {"F",-1}, {"G",1}, {"Bb",-2}, {"D",2}, {"Eb",-3}, {"A",3}, {"Ab",-4}, {"E",4}, {"Db",-5}, {"B",5}, {"Gb",-6}
+    };
     HarmonyResolver hr;
     
     
