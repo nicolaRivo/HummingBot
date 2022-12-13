@@ -12,6 +12,9 @@
 #include <map>          //needed to generate a map for key signature accidentals
 #include "MidiProcessor.h"
 #include "harmonyResolver.h"
+#include "ComputerSynthesiser.h"
+#include "HumanSynthesiser.h"
+
 //==============================================================================
 /**
 */
@@ -61,6 +64,8 @@ public:
     
 private:
     
+    juce::Synthesiser synth;
+    int voiceCount = 4;
     
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
