@@ -38,6 +38,19 @@ HummingBotAudioProcessor::~HummingBotAudioProcessor()
 
 void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    std::string currentHarmony = "C" ;
+    
+    std::vector<std::string> possibleHarmonies;
+    
+    possibleHarmonies.push_back("D");
+    possibleHarmonies.push_back("F");
+    possibleHarmonies.push_back("B");
+
+
+    
+    
+    findNearestHarmony(currentHarmony, possibleHarmonies);
+    
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
