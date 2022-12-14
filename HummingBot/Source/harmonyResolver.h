@@ -421,6 +421,6 @@ private:
     
     std::map<std::string, int> degreeToNumber =
     {
-        {"I",1},{"II",2},{"III",3},{"VI",4},{"V",5},{"VI",6},{"VII",7}
+        {"I",1},{"II",2},{"III",3},{"VI",4},{"V",5},{"VI",6},{"VII",7} //this is not zero based, possibly troublesome, doublecheck!
     };
 };

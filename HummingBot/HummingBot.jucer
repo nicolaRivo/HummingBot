@@ -25,6 +25,8 @@
       <FILE id="KVyXEX" name="FmSineOsc.h" compile="0" resource="0" file="Source/FmSineOsc.h"/>
       <FILE id="BS3gLH" name="Harmonizer.h" compile="0" resource="0" file="Source/Harmonizer.h"/>
       <FILE id="dB94UP" name="Oscillators.h" compile="0" resource="0" file="Source/Oscillators.h"/>
+      <FILE id="rsPOSg" name="TestSynthesiser.h" compile="0" resource="0"
+            file="Source/TestSynthesiser.h"/>
       <FILE id="bUcd00" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="nQPVp1" name="PluginProcessor.h" compile="0" resource="0"

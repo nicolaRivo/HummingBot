@@ -14,7 +14,7 @@ class MidiProcessor
 {
 public:
     
-    void process(juce::MidiBuffer& midiMessages)
+    void process(juce::MidiBuffer& midiMessages, int* currentHarmony)
     {
         juce::MidiBuffer::Iterator it(midiMessages);
         juce::MidiMessage currentMessage;
@@ -108,8 +108,11 @@ public:
                             std::cout << "Next key Centre is " << nextKeyCentre << "\n";
                             currentKeyCentre = nextKeyCentre;
                             
-                            std::cout << "New Key Centre is " << currentKeyCentre << "\n";
+                            std::cout << "New Key Centre is " << currentKeyCentre << "\n\n";
                             hr.setCurrentMajorScale(currentKeyCentre);
+                            
+                            
+                            
                             
                             std::vector<std::string> possibleNewChordDegrees = hr.findNewPossibleChordDegrees(newNotesCollection, currentKeyCentre);
                             
@@ -119,12 +122,74 @@ public:
                             {
                                 std::cout << possibleNewChordDegrees[i] <<"\n";
                             }
-                            std::cout << "\n===================================================\n\n";
+                            std::cout << "\n";
+
+                            std::string currentScaleDegree; //this will hold the new scale degree
                             
+                            bool noPossibleChord=0; //this will become true if no chord was found in the harmony and will skip the rest of the code without returning anything
+                            
+                            //if you have multiple chord options, randomly choose one chord out of the ones you have
+                            if(possibleNewChordDegrees.size()>1)
+                            {
+                                currentScaleDegree = possibleNewChordDegrees[random.nextInt(possibleNewChordDegrees.size())];}
+                            else if(possibleNewChordDegrees.size()==1)
+                                 currentScaleDegree = possibleNewChordDegrees[0];
+                            else if(possibleNewChordDegrees.size()==0)
+                                noPossibleChord=1;
+                            
+                            if(!noPossibleChord){
+                                
+                                std::cout << "among these we chose for you " << currentScaleDegree <<"\n";
+                                
+                                std::cout << "\n===================================================\n\n";
+                                
+                                int currentKeyCentreNumber = notesToNumber[currentKeyCentre];
+                                int currentScaleDegreeNumber = degreeToNumber[currentScaleDegree];
+                                
+                                //generate the current major scale formula
+                                std::cout << "your new major scale formula is: \n";
+                                
+                                for(int i = 0; i < majorScaleFormulaSize; i++)
+                                {
+                                    
+                                    currentMajorScaleFormula[i]= (majorScaleFormula[i] + currentKeyCentreNumber) % 12;
+                                    
+                                    std::cout << numberToNotes[currentMajorScaleFormula [i]] << "\n";
+                                    
+                                }
+                                
+                                
+                                //generate the current harmony formula
+                                for(int i = 0; i < genericHarmonyFormulaSize; i++)
+                                {
+                                    currentHarmonyFormula[i] = ( genericHarmonyFormula[i] + currentScaleDegreeNumber ) % 7;
+                                }
+                                
+                                std::cout << "you want a " << numberToNotes[currentMajorScaleFormula[degreeToNumber[currentScaleDegree]]] <<" "<< degreeToQuality[currentScaleDegree] <<"\n";
+                                
+                                std::cout << "here is what you have got: \n";
+                                //generate the current harmony
+                                for(int i = 0; i < genericHarmonyFormulaSize; i++)
+                                {
+                                    
+                                    
+                                    currentHarmony[i] = ( currentMajorScaleFormula[currentHarmonyFormula[i]]);
+                                    
+                                    std::cout << numberToNotes[currentHarmony[i]] <<   "\n";
+                                    
+                                }
+                                
+                                //return currentHarmony;
+                            }else
+                            {
+                                std::cout << "no possible chord was found for that key centre with the notes you have input";
+                                //return 0;
+                            }
                         }else
                         {
                             std::cout << "system was unable to find a new key centre, sticking with the old one\n\n";
                             currentKeyCentre = possibleMajorScales[0];
+                            //return 0;
                         }
                         
                         //clear the notes collection vector
@@ -154,6 +219,36 @@ private:
     std::vector<int> storedNotesCollection;
     HarmonyResolver hr;
     
+    int majorScaleFormula[7] = {0,2,4,5,7,9,11}; //    basic formula of any major scale
+    int majorScaleFormulaSize = *(&majorScaleFormula + 1) - majorScaleFormula; //size of the array majorScaleFormula
+    int currentMajorScaleFormula[7];
     
+    int genericHarmonyFormula[7] = {0,2,4,6,1,3,5}; //basic formula to generate any added seventh chord plus extension starting from a major scale formula
+    int genericHarmonyFormulaSize = *(&genericHarmonyFormula + 1) - genericHarmonyFormula; //size of the array majorScaleFormula
+    int currentHarmonyFormula[7];
+    
+    int currentHarmony[7];
 
+    
+    std::map<std::string, int> notesToNumber =
+    {
+        {"C",0}, {"Db",1}, {"D",2}, {"Eb",3}, {"E",4}, {"F",5}, {"Gb",6}, {"G",7}, {"Ab",8}, {"A",9}, {"Bb",10}, {"B",11}
+    };
+    
+    std::map<int, std::string> numberToNotes =
+    {
+        {0,"C"}, {1,"Db"}, {2,"D"}, {3,"Eb"}, {4,"E"}, {5,"F"}, {6,"Gb"}, {7,"G"}, {8,"Ab"}, {9,"A"}, {10,"Bb"}, {11,"B"}
+    };
+    
+    std::map<std::string, int> degreeToNumber =
+    {
+        {"I",0},{"II",1},{"III",2},{"IV",3},{"V",4},{"VI",5},{"VII",6}
+    };
+    
+    std::map<std::string, std::string> degreeToQuality =
+    {
+        {"I","Maj7-Ion"},{"II","Min7-Dor"},{"III","Min7-Phr"},{"IV","Maj7-Lyd"},{"V","Dom7-Mix"},{"VI","Min7-Aeo"},{"VII","Min7b5-Loc"}
+    };
+    juce::Random random;
+    
 };

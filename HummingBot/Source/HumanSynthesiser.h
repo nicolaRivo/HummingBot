@@ -9,6 +9,7 @@
 */
 
 #pragma once
+#include "Oscillators.h"
 
 // ===========================
 // ===========================
@@ -40,6 +41,12 @@ class HumanSynthVoice : public juce::SynthesiserVoice
 {
 public:
     HumanSynthVoice() {}
+    
+    
+    void init (float sampleRate)
+    {
+        myOsc.setSampleRate(sampleRate);
+    }
     //--------------------------------------------------------------------------
     /**
      What should be done when a note starts
@@ -122,4 +129,5 @@ private:
 
     /// a random object for use in our test noise function
     juce::Random random;
+    TriOsc myOsc;
 };

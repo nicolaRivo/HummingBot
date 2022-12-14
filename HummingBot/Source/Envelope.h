@@ -61,26 +61,7 @@ public:
         return timeFlow;
     }
 
-    /**
-     calculates the size of the increments to get from startGain to endGain in the time defined in nodeTime
-     @param startGain gain value to start from
-     @param endGain gain value to end at
-     @param nodeTime time to spend to do this ptocess
-     */
-    float gainRamp (float startGain = 0.0f, float endGain = 1.0f, float nodeTime = 1.0f)
-    {
-        //make sure that both endGain and startGain are values between 0 and 1
-        assert (1.0f >= endGain  && endGain >= 0.0f && 1.0f >= startGain && startGain >= 0.0f);
-        
-        //If startGain == endGain we are probably in a sustain node, so just return whatever the gain was previously without engaging in other calculations
-        if (startGain == endGain)
-            return gain;
-        
-        float gainDifference = (endGain - startGain); //-----------------Calculates the size of the gain difference
-        float rampStep = gainDifference / (nodeTime * sampleRate); //----Size of each gain increase/decrease for process cycle
-        gain += rampStep;//----------------------------------------------Updates the gain ramp
-        return gain;
-    }
+
     
     
     /**
@@ -180,12 +161,20 @@ public:
         }
     }
     
-    ///sets all the needed parameters for the envelope
-    void setParameters (float _attack = 1.0f,//---------------------------Attack time in seconds
-                        float _decay = 1.0f,//----------------------------Decay time in seconds
-                        float _sustain = 0.5f,//--------------------------Gain applied to the sustain
-                        float _hold = 1.0f,//-----------------------------Time the sustain is hold in seconds
-                        float _release = 2.5f)//--------------------------Attack time in seconds
+    
+    /**
+     sets all the needed parameters for the envelope
+     @param _attack float attack time in seconds
+     @param _decay Decay time in seconds
+     @param _sustain Gain applied to the sustain
+     @param _hold Time the sustain is hold in seconds
+     @param _release Release time in seconds
+     */
+    void setParameters (float _attack,//---------------------------Attack time in seconds
+                        float _decay,//----------------------------Decay time in seconds
+                        float _sustain,//--------------------------Gain applied to the sustain
+                        float _hold,//-----------------------------Time the sustain gain is held in seconds
+                        float _release)//--------------------------release time in seconds
     {
         attack = _attack;
         decay = _decay;
@@ -210,7 +199,7 @@ public:
         release = random.nextFloat() * 5;
     }
     /**
-     allows the envelope to automatically retrigger once its cycle is over
+     allows the envelope to automatically retrigger once its cycle is over; By default this is set as False
      @param t enable/disable retrigger function
      @param dieTime sets how long it will wait before retriggering
      */
@@ -227,6 +216,30 @@ public:
     }
     
 private:
+    
+    /**
+     calculates the size of the increments to get from startGain to endGain in the time defined in nodeTime
+     @param startGain gain value to start from
+     @param endGain gain value to end at
+     @param nodeTime time to spend to do this ptocess
+     */
+    float gainRamp (float startGain = 0.0f, float endGain = 1.0f, float nodeTime = 1.0f)
+    {
+        //make sure that both endGain and startGain are values between 0 and 1
+        assert (1.0f >= endGain  && endGain >= 0.0f && 1.0f >= startGain && startGain >= 0.0f);
+        
+        //If startGain == endGain we are probably in a sustain node, so just return whatever the gain was previously without engaging in other calculations
+        if (startGain == endGain)
+            return gain;
+        
+        float gainDifference = (endGain - startGain); //-----------------Calculates the size of the gain difference
+        float rampStep = gainDifference / (nodeTime * sampleRate); //----Size of each gain increase/decrease for process cycle
+        gain += rampStep;//----------------------------------------------Updates the gain ramp
+        return gain;
+    }
+    
+    
+    
     bool debug = 0;
     DebugResolutionTool debugLine1;
 

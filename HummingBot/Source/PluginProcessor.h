@@ -13,7 +13,9 @@
 #include "MidiProcessor.h"
 #include "harmonyResolver.h"
 #include "ComputerSynthesiser.h"
+#include "TestSynthesiser.h"
 #include "HumanSynthesiser.h"
+#include "Oscillators.h"
 
 //==============================================================================
 /**
@@ -62,15 +64,69 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     
+    float midiToFrequency( int midiValue){
+        //float floatMidiValue = (float) midiValue;
+        float frequencyValue = 440.0f * pow(2.0f, ((midiValue - 69.0f) / 12.0f));   // MIDI to Hz conversion formula: 440 * 2^[(d - 69) / 12]
+        return frequencyValue;
+    };
+
+    int octaves (int octNum)
+    {
+        return octNum * 12;
+    }
+    
+    
 private:
     
+    juce::Synthesiser humanSynth;
+    juce::Synthesiser computerSynth;
+
     juce::Synthesiser synth;
-    int voiceCount = 4;
+
+    SineOsc mySineOsc;
+    
+    int computerVoiceCount = 4;
+    int humanVoiceCount = 4;
+    
+    int testVoiceCount = 1;
     
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
     std::vector<std::string> possibleHarmonies;
 
+    //DSP LOOP STUFF
+    bool playing = false;
+    
+    int root = 0;
+    int fifth = 7;
+    int guideTones[2] = {4,11};
+    int extensions[3] = {2,5,9};
+    
+    int harmonyArray[7];
+    
+    float rootFreq;
+    float fifthFreq;
+    float guideTonesFreq[2];
+    float extensionsFreq[3];
+
+    std::vector<float> samples;
+
+    /// a random object for use in our test noise function
+    juce::Random random;
+    
+    Envelope bassOscEnvelope;
+    
+    TriOsc bassOsc;
+    
+    
+    Envelope chordOscEnvelope;
+    
+    SineOsc chordOsc1;
+    SineOsc chordOsc2;
+    SineOsc chordOsc3;
+    
+    SineOsc myOsc5;
+    SineOsc myOsc6;
     
     
     //==============================================================================

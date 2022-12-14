@@ -22,6 +22,25 @@ HummingBotAudioProcessor::HummingBotAudioProcessor()
                        )
 #endif
 {
+//    for (int i = 0 ; i < computerVoiceCount; i++)
+//    {
+//        computerSynth.addVoice(new ComputerSynthVoice);
+//    }
+//
+//    for (int i = 0 ; i < humanVoiceCount; i++)
+//    {
+//        humanSynth.addVoice(new HumanSynthVoice);
+//    }
+//
+//    computerSynth.addSound (new ComputerSynthSound);
+//    humanSynth.addSound (new HumanSynthSound);
+    
+        for (int i = 0 ; i < testVoiceCount; i++)
+        {
+            synth.addVoice(new TestSynthVoice);
+        }
+      synth.addSound (new TestSynthSound);
+
 }
 
 HummingBotAudioProcessor::~HummingBotAudioProcessor()
@@ -38,7 +57,48 @@ HummingBotAudioProcessor::~HummingBotAudioProcessor()
 
 void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+        synth.setCurrentPlaybackSampleRate(sampleRate);
+        for (int i = 0; i < testVoiceCount; i++)
+        {
+            TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
+            v->init(sampleRate);
+        }
+    
+    
+    //DSP LOOP STUFF
+    bassOsc.setSampleRate(sampleRate);
+    bassOscEnvelope.setSampleRate(sampleRate);
+    bassOscEnvelope.toggleRetrigger(true);
+//        myOsc1.setSampleRate(sampleRate);
+    
+    chordOscEnvelope.setSampleRate(sampleRate);
+    chordOscEnvelope.setParameters(0.3, 1, 0.6, 3, 3);
+    chordOscEnvelope.toggleRetrigger(true);
 
+    chordOsc1.setSampleRate(sampleRate);
+    chordOsc2.setSampleRate(sampleRate);
+    chordOsc3.setSampleRate(sampleRate);
+    
+    myOsc5.setSampleRate(sampleRate);
+    myOsc6.setSampleRate(sampleRate);
+    
+//    computerSynth.setCurrentPlaybackSampleRate(sampleRate);
+//    for (int i = 0; i < computerVoiceCount; i++)
+//    {
+//        ComputerSynthVoice* v = dynamic_cast<ComputerSynthVoice*>(computerSynth.getVoice(i));
+//        v->init(sampleRate);
+//    }
+//
+//    humanSynth.setCurrentPlaybackSampleRate(sampleRate);
+//    for (int i = 0; i < humanVoiceCount; i++)
+//    {
+//        HumanSynthVoice* v = dynamic_cast<HumanSynthVoice*>(humanSynth.getVoice(i));
+//        v->init(sampleRate);
+//    }
+//
+    //mySineOsc.setFrequency(440);
+    //mySineOsc.setSampleRate(sampleRate);
+    
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
@@ -53,40 +113,127 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 {
     
     
+    //    juce::ScopedNoDenormals noDenormals;
+    int numSamples = buffer.getNumSamples();
+    float* leftChannel = buffer.getWritePointer(0);
+    float* rightChannel = buffer.getWritePointer(1);
+
+    
+    
     buffer.clear();//------------------------*clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
-    midiProcessor.process(midiMessages);//---*process the incoming MIDI messages
+ 
+    int arr[7];
+    
+    midiProcessor.process(midiMessages, arr);//---*process the incoming MIDI messages
+    int sumArr=0;
+    
+    for(int i = 0; i<7;i++)
+        sumArr=+ arr[i];
+   
+    
+    if(sumArr<100 && sumArr>0)
+    {
+        for(int i = 0; i<7;i++)
+        {
+            harmonyArray[i] = arr[i];
+            std::cout<< "\n\n I am in the .cpp file "<< arr[i]<<" \n\n";
+        }
+    }
+
+   
+    //computerSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+
+    //humanSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    
+    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+
     
     
     
     
+
+    rootFreq = midiToFrequency(root + octaves(4));
+    fifthFreq = midiToFrequency(fifth + octaves(5));
+    guideTonesFreq[0] = midiToFrequency(guideTones[0] + octaves(5));
+    guideTonesFreq[1] = midiToFrequency(guideTones[1] + octaves(6));
+    extensionsFreq[0] = midiToFrequency(extensions[0] + octaves(8));
+    extensionsFreq[1] = midiToFrequency(extensions[1] + octaves(8));
+    extensionsFreq[2] = midiToFrequency(extensions[2] + octaves(8));
+
     
-    //PROBABLY ALL USELESS STUFF
     
-//    juce::ScopedNoDenormals noDenormals;
-//    auto totalNumInputChannels  = getTotalNumInputChannels();
-//    auto totalNumOutputChannels = getTotalNumOutputChannels();
-//
-//    // In case we have more outputs than inputs, this code clears any output
-//    // channels that didn't contain input data, (because these aren't
-//    // guaranteed to be empty - they may contain garbage).
-//    // This is here to avoid people getting screaming feedback
-//    // when they first compile a plugin, but obviously you don't need to keep
-//    // this code if your algorithm always overwrites all the output channels.
-//    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-//        buffer.clear (i, 0, buffer.getNumSamples());
-//
-//    // This is the place where you'd normally do the guts of your plugin's
-//    // audio processing...
-//    // Make sure to reset the state if your inner loop is processing
-//    // the samples and the outer loop is handling the channels.
-//    // Alternatively, you can process the samples with the channels
-//    // interleaved by keeping the same state.
-//    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-//    {
-//        auto* channelData = buffer.getWritePointer (channel);
-//
-//        // ..do something to the data...
-//    }
+    bassOsc.setFrequency(midiToFrequency(root + octaves(4)));
+   // myOsc1.setFrequency(rootFreq);
+
+    chordOsc1.setFrequency(midiToFrequency(root + octaves(5)));
+    chordOsc2.setFrequency(midiToFrequency(fifth + octaves(5)));
+    chordOsc3.setFrequency(midiToFrequency(guideTones[0] + octaves(5)));
+    
+    
+    
+    myOsc5.setFrequency(extensionsFreq[0]);
+    myOsc6.setFrequency(extensionsFreq[1]);
+    
+    /*
+     ===========
+    ||DSP LOOP ||
+     ===========
+    */
+    
+    for (int i = 0; i < numSamples; i++)
+    {
+        float sample = 0.0f;
+        
+        
+        // your sample-by-sample DSP code here!
+        // An example white noise generater as a placeholder - replace with your own code
+        
+        float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
+        
+        float processedBassOsc = bassOsc.process();
+        float processedBassOscEnvelope =bassOscEnvelope.process();
+        
+        
+        float processedChordOsc1 = chordOsc1.process();
+        float processedChordOsc2 = chordOsc2.process();
+        float processedChordOsc3 = chordOsc3.process();
+
+        float processedChordOscEnvelope = chordOscEnvelope.process();
+
+        
+        
+        processedBassOsc *= processedBassOscEnvelope;
+        
+         processedChordOsc1 *= processedChordOscEnvelope;
+         processedChordOsc2 *= processedChordOscEnvelope;
+         processedChordOsc3 *= processedChordOscEnvelope;
+        
+        samples.push_back(processedBassOsc * 0.2);
+//                samples.push_back(myOsc1.process());
+        samples.push_back(processedChordOsc1);
+        samples.push_back(processedChordOsc2);
+        samples.push_back(processedChordOsc3);
+        
+        //samples.push_back(myOsc5.process());
+        //samples.push_back(myOsc6.process());
+
+        
+        for (int i = 0; i < samples.size(); i++)
+        {
+            currentSample += samples[i];
+        }
+
+        currentSample /= samples.size();
+
+        //currentSample=0.0f;
+        
+        samples.clear();
+        
+        leftChannel[i]  += currentSample;
+        rightChannel[i] += currentSample;
+
+    }
+
 }
 
 
