@@ -40,7 +40,7 @@ public:
         partials = p;
     }
     
-    /// insets the frequency for the the partial modulation LFO (has to be lower than 20Hz)
+    /// sets the frequency for the the partial modulation LFO (has to be lower than 20Hz)
     void setPartialModulationLFOFrequency(float f)
     {
         partialBlockModulationLFO.setFrequency(f);

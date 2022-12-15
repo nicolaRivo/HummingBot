@@ -22,40 +22,70 @@ HummingBotAudioProcessor::HummingBotAudioProcessor()
                        ),
 #endif
 generalParameters(*this, nullptr, "GeneralParameters", {
-    std::make_unique<juce::AudioParameterFloat>("bass_gain",  "Bass Gain",  0.00001f, 1.0f, 0.7f),
-    std::make_unique<juce::AudioParameterFloat>("chord_gain", "Chord Gain", 0.00001f, 1.0f, 0.7f)
+    std::make_unique<juce::AudioParameterFloat>("bass_gain",   "Arrangement : Bass Gain",   0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterFloat>("chord_gain",  "Arrangement : Chords Gain", 0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterFloat>("reverb_amount",    "Reverb : Amount",      0.00001f, 1.0f, 0.3f),
+    std::make_unique<juce::AudioParameterFloat>("reverb_size",      "Reverb : Size",        0.00001f, 1.0f, 0.3f)
+
 
 }),
 synthParameters(*this, nullptr, "SynthParameters", {
-    std::make_unique<juce::AudioParameterFloat>("detune", "Detune (Hz)",0.0f, 20.0f, 2.0f)
+    
+    std::make_unique<juce::AudioParameterFloat>("voice_gain",       "Voice  : Gain",     0.0f,  1.0f, 0.4f),
+    std::make_unique<juce::AudioParameterFloat>("voice_detune",      "Voice : Detune",   0.0f, 20.0f, 2.0f),
+    
+    
+    std::make_unique<juce::AudioParameterFloat>("amp_attack",   "AMP : Attack",     0.0001f, 3.0f, 0.5f),
+    std::make_unique<juce::AudioParameterFloat>("amp_decay",    "AMP : Decay",      0.0001f, 3.0f, 0.1f),
+    std::make_unique<juce::AudioParameterFloat>("amp_sustain",  "AMP : Sustain",    0.0001f, 1.00f, 0.5f),
+    std::make_unique<juce::AudioParameterFloat>("amp_release",  "AMP : Release",    0.0001f, 3.0f, 0.5f)
+
 })
 
 
 
 
 {
-      //===========//
-     //Constructor//
-    //===========//
+      //=================//
+     //~~~CONSTRUCTOR~~~//
+    //=================//
 
-    //GeneralParameters//
+    /*--GENERAL parameters--*/
 
     bassGainParam  = generalParameters.getRawParameterValue("bass_gain");
     chordGainParam = generalParameters.getRawParameterValue("chord_gain");
 
-    //SynthParameters//
-    detuneParam = synthParameters.getRawParameterValue("detune");
+    reverbAmountParam  = generalParameters.getRawParameterValue("reverb_amount");
+    reverbSizeParam = generalParameters.getRawParameterValue("reverb_size");
+    
+    /*--SYNTH parameters--*/
+
+    synthVoiceGainParam = synthParameters.getRawParameterValue("voice_gain");
+    detuneParam = synthParameters.getRawParameterValue("voice_detune");
 
     
-    //Synth Voice Allocation//
+    ampAttackParam  =   synthParameters.getRawParameterValue("amp_attack");
+    ampDecayParam   =   synthParameters.getRawParameterValue("amp_decay");
+    ampSustainParam =   synthParameters.getRawParameterValue("amp_sustain");
+    ampReleaseParam =   synthParameters.getRawParameterValue("amp_release");
 
 
+    
+    
+    
+
+    
+       //============================//
+      //~~~SYNTH VOICE ALLOCATION~~~//
+     //============================//
         for (int i = 0 ; i < testVoiceCount; i++)
         {
             synth.addVoice(new TestSynthVoice);
         }
       synth.addSound (new TestSynthSound);
 
+    
+    
 }
 
 HummingBotAudioProcessor::~HummingBotAudioProcessor()
@@ -94,12 +124,28 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     chordOsc2.setSampleRate(sampleRate);
     chordOsc3.setSampleRate(sampleRate);
     
-    myOsc5.setSampleRate(sampleRate);
-    myOsc6.setSampleRate(sampleRate);
+    extensionOsc1.setSampleRate(sampleRate);
+    extensionOsc2.setSampleRate(sampleRate);
     
     
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    /*--SMOOTHING parameters--*/
+    smoothBassGain.reset(sampleRate, smoothRampingTime);
+    smoothBassGain.setCurrentAndTargetValue(0.0);
+    
+    smoothChordGain.reset(sampleRate, smoothRampingTime);
+    smoothChordGain.setCurrentAndTargetValue(0.0);
+
+    smoothReverbAmount.reset(sampleRate, smoothRampingTime);
+    smoothReverbAmount.setCurrentAndTargetValue(0.0);
+    
+    smoothReverbSize.reset(sampleRate, smoothRampingTime);
+    smoothReverbSize.setCurrentAndTargetValue(0.0);
+    
+    
+    
+    //General Reverb
+    generalReverb.reset();
+    
 }
 
 /*
@@ -113,13 +159,21 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     
     //    juce::ScopedNoDenormals noDenormals;
-    int numSamples = buffer.getNumSamples();
-    float* leftChannel = buffer.getWritePointer(0);
-    float* rightChannel = buffer.getWritePointer(1);
+    int numSamples = buffer.getNumSamples();//----------->get the number of samples for each block
+    float* leftChannel = buffer.getWritePointer(0);//---->get pointer to the left channel
+    float* rightChannel = buffer.getWritePointer(1);//--->get pointer to the right channel
+    buffer.clear();//------------------------------------>clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
 
     
+    /*--SMOOTHING parameters--*/
     
-    buffer.clear();//------------------------*clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
+    smoothBassGain.setTargetValue(*bassGainParam);
+    smoothChordGain.setTargetValue(*chordGainParam);
+    
+    smoothReverbAmount.setTargetValue(*reverbAmountParam);
+    smoothReverbSize.setTargetValue(*reverbSizeParam);
+    
+    
  
     int arr[7];
     
@@ -161,6 +215,19 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         v->setDetune(*detuneParam);
     }
     
+    for (int i = 0; i < testVoiceCount; i++)
+    {
+        TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
+        v->setSynthVoiceGain(*synthVoiceGainParam);
+    }
+    
+    
+    for (int i = 0; i < testVoiceCount; i++)
+    {
+        TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
+        v->setADSR(*ampAttackParam, *ampDecayParam, *ampSustainParam, *ampReleaseParam);
+    }
+    
     synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
     
@@ -187,14 +254,12 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     
     
-    myOsc5.setFrequency(extensionsFreq[0]);
-    myOsc6.setFrequency(extensionsFreq[1]);
+    extensionOsc1.setFrequency(extensionsFreq[0]);
+    extensionOsc2.setFrequency(extensionsFreq[1]);
     
-    /*
-     ===========
-    ||DSP LOOP ||
-     ===========
-    */
+    /* ===============
+    ||DSP LOOP start||
+     ===============*/
     
     for (int i = 0; i < numSamples; i++)
     {
@@ -203,14 +268,31 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         // An example white noise generater as a placeholder - replace with your own code
         
         
+        /*--PROCESS smooth parameters--*/
+
+        float bassGainSmoothedVal = smoothBassGain.getNextValue();
+        float chordGainSmoothedVal = smoothChordGain.getNextValue();
+        float reverbAmountSmoothedVal = smoothReverbAmount.getNextValue();
+        float reverbSizeSmoothedVal = smoothReverbSize.getNextValue();
+        
+        
+        //set global reverb
+        reverbParams.dryLevel = 1.0f - reverbAmountSmoothedVal/2.0f;
+        reverbParams.wetLevel = reverbAmountSmoothedVal;
+        reverbParams.roomSize = reverbSizeSmoothedVal;
+        generalReverb.setParameters(reverbParams);
+        
+        
+        
+        /*========================================
+        ||Start adding data to the current sample||
+         ========================================*/
         
         float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
         
         float processedBassOsc = bassOsc.process();
         float processedBassOscEnvelope =bassOscEnvelope.process();
-        processedBassOscEnvelope *= (*bassGainParam);
-        
-        std::cout << drt.nextStep("bass gain value is", *bassGainParam);
+        processedBassOscEnvelope *= bassGainSmoothedVal;
         
         
 
@@ -220,9 +302,8 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 
         float processedChordOscEnvelope = chordOscEnvelope.process();
         
-        processedChordOscEnvelope *= (*chordGainParam);
+        processedChordOscEnvelope *= chordGainSmoothedVal;
         
-        std::cout << drt.nextStep("chord gain value is", *chordGainParam);
         
         
         
@@ -249,7 +330,7 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 
         currentSample /= samples.size();
 
-        //currentSample=0.0f;
+        currentSample *= genProtectionGain;
         
         samples.clear();
         
@@ -257,6 +338,15 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         rightChannel[i] += currentSample;
 
     }
+    
+    
+    /* =============
+    ||DSP LOOP end||
+     =============*/
+    
+    
+    //apply global reverb
+       generalReverb.processStereo(leftChannel, rightChannel, numSamples);
 
 }
 
