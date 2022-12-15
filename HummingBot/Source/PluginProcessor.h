@@ -79,10 +79,14 @@ public:
     
 private:
     
-    juce::AudioProcessorValueTreeState apvts;
     
-    juce::Synthesiser humanSynth;
-    juce::Synthesiser computerSynth;
+    
+    juce::AudioProcessorValueTreeState generalParameters;
+    
+    juce::AudioProcessorValueTreeState synthParameters;
+    
+    std::atomic<float>* detuneParam;
+    
 
     juce::Synthesiser synth;
 

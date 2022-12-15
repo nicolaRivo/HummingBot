@@ -66,6 +66,7 @@ public:
     void init (float sampleRate)
     {
         myOsc.setSampleRate(sampleRate);
+        detuneOsc.setSampleRate(sampleRate);
         env.setSampleRate(sampleRate);
         juce::ADSR::Parameters envParams;
         
@@ -80,12 +81,20 @@ public:
     }
     
     
+    void setDetune (float detuneIn)
+    {
+        detuneAmount = detuneIn;
+    }
+    
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound*, int /*currentPitchWheelPosition*/) override
     {
         if(midiNoteNumber != 36){
             playing = true;
             ending = false;
-            myOsc.setFrequency(midiToFrequency(midiNoteNumber));
+            freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+            
+            myOsc.setFrequency(freq);
+
             env.reset();
             env.noteOn();
         }
@@ -119,6 +128,11 @@ public:
     {
         if (playing) // check to see if this voice should be playing
         {
+            
+            detuneOsc.setFrequency(freq - detuneAmount);
+
+            
+            
             // iterate through the necessary number of samples (from startSample up to startSample + numSamples)
             for (int sampleIndex = startSample;   sampleIndex < (startSample+numSamples);   sampleIndex++)
             {
@@ -127,7 +141,7 @@ public:
 //
                 float envVal = env.getNextSample();
                 float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
-                currentSample = myOsc.process();
+                currentSample = (myOsc.process() + detuneOsc.process()) / 2.0f * envVal;
 
                 
                 // for each channel, write the currentSample float to the output
@@ -168,10 +182,17 @@ private:
     //--------------------------------------------------------------------------
     // Set up any necessary variables here
     /// Should the voice be playing?
+    
     bool playing = false;
     bool ending = false;
-    SineOsc myOsc;
+    SineOsc myOsc, detuneOsc;
+    
+    float freq ;//---------------the frequecy value that will be used to generate the synthesiser note
+    
+    float detuneAmount = 2.0f;
 
+    
+    
     juce::ADSR env;
 
 };

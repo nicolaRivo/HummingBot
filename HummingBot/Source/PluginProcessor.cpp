@@ -21,11 +21,15 @@ HummingBotAudioProcessor::HummingBotAudioProcessor()
                      #endif
                        ),
 #endif
-apvts(*this, nullptr, "ParamTreeIdentifier", {
-    std::make_unique<juce::AudioParameterFloat>("bass_gain", "Bass Gain", 0.00001f, 1.0f, 0.7f),
+generalParameters(*this, nullptr, "GeneralParameters", {
+    std::make_unique<juce::AudioParameterFloat>("bass_gain",  "Bass Gain",  0.00001f, 1.0f, 0.7f),
     std::make_unique<juce::AudioParameterFloat>("chord_gain", "Chord Gain", 0.00001f, 1.0f, 0.7f)
 
+}),
+synthParameters(*this, nullptr, "SynthParameters", {
+    std::make_unique<juce::AudioParameterFloat>("detune", "Detune (Hz)",0.0f, 20.0f, 2.0f)
 })
+
 
 
 
@@ -34,10 +38,13 @@ apvts(*this, nullptr, "ParamTreeIdentifier", {
      //Constructor//
     //===========//
 
-    //Parameters//
+    //GeneralParameters//
 
-    bassGainParam  = apvts.getRawParameterValue("bass_gain");
-    chordGainParam = apvts.getRawParameterValue("chord_gain");
+    bassGainParam  = generalParameters.getRawParameterValue("bass_gain");
+    chordGainParam = generalParameters.getRawParameterValue("chord_gain");
+
+    //SynthParameters//
+    detuneParam = synthParameters.getRawParameterValue("detune");
 
     
     //Synth Voice Allocation//
@@ -123,7 +130,7 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         sumArr += arr[i];
    
     
-    if(sumArr<30 && sumArr>10)
+    if(sumArr<100 && sumArr>0)
     {
         std::cout<< "\n\n SumArray is "<< sumArr<<" \n\n";
 
@@ -147,6 +154,12 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     //computerSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
     //humanSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    
+    for (int i = 0; i < testVoiceCount; i++)
+    {
+        TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
+        v->setDetune(*detuneParam);
+    }
     
     synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
@@ -363,7 +376,7 @@ juce::AudioProcessorEditor* HummingBotAudioProcessor::createEditor()
 void HummingBotAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // getStateInformation
-    auto state = apvts.copyState();
+    auto state = generalParameters.copyState();
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -374,9 +387,9 @@ void HummingBotAudioProcessor::setStateInformation (const void* data, int sizeIn
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
     if (xmlState.get() != nullptr)
     {
-        if (xmlState->hasTagName (apvts.state.getType()))
+        if (xmlState->hasTagName (generalParameters.state.getType()))
         {
-            apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
+            generalParameters.replaceState (juce::ValueTree::fromXml (*xmlState));
         }
     }
 }
