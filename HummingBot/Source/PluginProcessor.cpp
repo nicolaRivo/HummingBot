@@ -19,22 +19,30 @@ HummingBotAudioProcessor::HummingBotAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
 #endif
+apvts(*this, nullptr, "ParamTreeIdentifier", {
+    std::make_unique<juce::AudioParameterFloat>("bass_gain", "Bass Gain", 0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterFloat>("chord_gain", "Chord Gain", 0.00001f, 1.0f, 0.7f)
+
+})
+
+
+
 {
-//    for (int i = 0 ; i < computerVoiceCount; i++)
-//    {
-//        computerSynth.addVoice(new ComputerSynthVoice);
-//    }
-//
-//    for (int i = 0 ; i < humanVoiceCount; i++)
-//    {
-//        humanSynth.addVoice(new HumanSynthVoice);
-//    }
-//
-//    computerSynth.addSound (new ComputerSynthSound);
-//    humanSynth.addSound (new HumanSynthSound);
+      //===========//
+     //Constructor//
+    //===========//
+
+    //Parameters//
+
+    bassGainParam  = apvts.getRawParameterValue("bass_gain");
+    chordGainParam = apvts.getRawParameterValue("chord_gain");
+
     
+    //Synth Voice Allocation//
+
+
         for (int i = 0 ; i < testVoiceCount; i++)
         {
             synth.addVoice(new TestSynthVoice);
@@ -58,6 +66,7 @@ HummingBotAudioProcessor::~HummingBotAudioProcessor()
 void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
         synth.setCurrentPlaybackSampleRate(sampleRate);
+    
         for (int i = 0; i < testVoiceCount; i++)
         {
             TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
@@ -69,7 +78,6 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     bassOsc.setSampleRate(sampleRate);
     bassOscEnvelope.setSampleRate(sampleRate);
     bassOscEnvelope.toggleRetrigger(true);
-//        myOsc1.setSampleRate(sampleRate);
     
     chordOscEnvelope.setSampleRate(sampleRate);
     chordOscEnvelope.setParameters(0.3, 1, 0.6, 3, 3);
@@ -82,22 +90,6 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     myOsc5.setSampleRate(sampleRate);
     myOsc6.setSampleRate(sampleRate);
     
-//    computerSynth.setCurrentPlaybackSampleRate(sampleRate);
-//    for (int i = 0; i < computerVoiceCount; i++)
-//    {
-//        ComputerSynthVoice* v = dynamic_cast<ComputerSynthVoice*>(computerSynth.getVoice(i));
-//        v->init(sampleRate);
-//    }
-//
-//    humanSynth.setCurrentPlaybackSampleRate(sampleRate);
-//    for (int i = 0; i < humanVoiceCount; i++)
-//    {
-//        HumanSynthVoice* v = dynamic_cast<HumanSynthVoice*>(humanSynth.getVoice(i));
-//        v->init(sampleRate);
-//    }
-//
-    //mySineOsc.setFrequency(440);
-    //mySineOsc.setSampleRate(sampleRate);
     
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
@@ -128,16 +120,27 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     int sumArr=0;
     
     for(int i = 0; i<7;i++)
-        sumArr=+ arr[i];
+        sumArr += arr[i];
    
     
-    if(sumArr<100 && sumArr>0)
+    if(sumArr<30 && sumArr>10)
     {
+        std::cout<< "\n\n SumArray is "<< sumArr<<" \n\n";
+
         for(int i = 0; i<7;i++)
         {
             harmonyArray[i] = arr[i];
             std::cout<< "\n\n I am in the .cpp file "<< arr[i]<<" \n\n";
         }
+        
+        root = harmonyArray[0];
+        fifth = harmonyArray[1];
+        guideTones[0] = harmonyArray[2];
+        guideTones[1] = harmonyArray[3];
+        extensions[0] = harmonyArray[4];
+        extensions[1] = harmonyArray[5];
+        extensions[2] = harmonyArray[6];
+        
     }
 
    
@@ -182,24 +185,32 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     for (int i = 0; i < numSamples; i++)
     {
-        float sample = 0.0f;
-        
         
         // your sample-by-sample DSP code here!
         // An example white noise generater as a placeholder - replace with your own code
+        
+        
         
         float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
         
         float processedBassOsc = bassOsc.process();
         float processedBassOscEnvelope =bassOscEnvelope.process();
+        processedBassOscEnvelope *= (*bassGainParam);
+        
+        std::cout << drt.nextStep("bass gain value is", *bassGainParam);
         
         
+
         float processedChordOsc1 = chordOsc1.process();
         float processedChordOsc2 = chordOsc2.process();
         float processedChordOsc3 = chordOsc3.process();
 
         float processedChordOscEnvelope = chordOscEnvelope.process();
-
+        
+        processedChordOscEnvelope *= (*chordGainParam);
+        
+        std::cout << drt.nextStep("chord gain value is", *chordGainParam);
+        
         
         
         processedBassOsc *= processedBassOscEnvelope;
@@ -208,8 +219,8 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
          processedChordOsc2 *= processedChordOscEnvelope;
          processedChordOsc3 *= processedChordOscEnvelope;
         
-        samples.push_back(processedBassOsc * 0.2);
-//                samples.push_back(myOsc1.process());
+        
+       samples.push_back(processedBassOsc * 0.2);
         samples.push_back(processedChordOsc1);
         samples.push_back(processedChordOsc2);
         samples.push_back(processedChordOsc3);
@@ -345,21 +356,29 @@ bool HummingBotAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* HummingBotAudioProcessor::createEditor()
 {
-    return new HummingBotAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor (*this);
 }
 
 //==============================================================================
 void HummingBotAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // getStateInformation
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void HummingBotAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // setStateInformation
+    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+    if (xmlState.get() != nullptr)
+    {
+        if (xmlState->hasTagName (apvts.state.getType()))
+        {
+            apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
+        }
+    }
 }
 
 //==============================================================================
