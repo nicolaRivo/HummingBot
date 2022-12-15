@@ -145,7 +145,6 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     
     //General Reverb
     generalReverb.reset();
-    
 }
 
 /*
@@ -277,11 +276,17 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         
         
         //set global reverb
-        reverbParams.dryLevel = 1.0f - reverbAmountSmoothedVal/2.0f;
-        reverbParams.wetLevel = reverbAmountSmoothedVal;
-        reverbParams.roomSize = reverbSizeSmoothedVal;
-        generalReverb.setParameters(reverbParams);
         
+        int revCurrentLevels = (reverbParams.wetLevel * reverbParams.roomSize); // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
+        
+        if(revCurrentLevels != revCheckLevels)
+        {
+            reverbParams.dryLevel = 1.0f - reverbAmountSmoothedVal/2.0f;
+            reverbParams.wetLevel = reverbAmountSmoothedVal;
+            reverbParams.roomSize = reverbSizeSmoothedVal;
+            generalReverb.setParameters(reverbParams);
+            revCheckLevels = (reverbParams.wetLevel * reverbParams.roomSize); // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the
+        }
         
         
         /*========================================

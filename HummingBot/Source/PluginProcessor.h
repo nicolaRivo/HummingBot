@@ -121,6 +121,7 @@ private:
     /*--VRBs & DLYs--*/
     juce::Reverb generalReverb;
     juce::Reverb::Parameters reverbParams;
+    float revCheckLevels; // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
 
     
 
