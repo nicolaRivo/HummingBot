@@ -2,7 +2,8 @@
 
 <JUCERPROJECT id="cs41LH" name="HummingBot" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn">
+              pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
+              pluginFormats="buildVST3">
   <MAINGROUP id="t8Ykd4" name="HummingBot">
     <GROUP id="{62D68105-60D2-D0DF-93AB-CEF2DC08FCBE}" name="Source">
       <FILE id="BkbsSW" name="computerSynthesiser.h" compile="0" resource="0"
