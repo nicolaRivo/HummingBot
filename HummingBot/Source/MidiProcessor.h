@@ -212,7 +212,7 @@ public:
     
 private:
     bool debug = 0;
-    bool enterHarmonyMode = 1;
+    bool enterHarmonyMode = 0;
     int maxHarmonyInput = 4;
     std::vector<int> newNotesCollection;
     std::string currentKeyCentre = "C";

@@ -21,7 +21,7 @@ public:
     
     /**updates the inner counter of the debug resolution tool. if the tool has compleated a whole cycle, it will return a debug message
      @param msg textual unchanging content of the debug message
-     @param val float  dynamic contend of the debug message
+     @param val float  dynamic content of the debug message
     */
     std::string nextStep(std::string msg = "", float val = 0.0f)
     {
