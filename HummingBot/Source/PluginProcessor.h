@@ -79,73 +79,96 @@ public:
     
 private:
     
+    /*--FUNDAMENTAL variables--*/
     
-    
-    juce::AudioProcessorValueTreeState generalParameters;
-    
-    juce::AudioProcessorValueTreeState synthParameters;
-    
-    std::atomic<float>* detuneParam;
-    
-
     juce::Synthesiser synth;
-
-    SineOsc mySineOsc;
-    
-
     int testVoiceCount = 16;
-    
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
-    std::vector<std::string> possibleHarmonies;
-
-    //DSP LOOP STUFF
-    bool playing = false;
     
+    std::vector<float> samples;
+    std::vector<std::string> possibleHarmonies;
+    
+
+    /*--HARMONY variables--*/
+    int harmonyArray[7];
+
     int root = 0;
     int fifth = 7;
     int guideTones[2] = {4,11};
     int extensions[3] = {2,5,9};
-    
-    int harmonyArray[7];
     
     float rootFreq;
     float fifthFreq;
     float guideTonesFreq[2];
     float extensionsFreq[3];
 
-    std::vector<float> samples;
+    
+    /*--GENERAL oscillators--*/
 
-    /// a random object for use in our test noise function
-    juce::Random random;
-    
-    Envelope bassOscEnvelope;
-    
     TriOsc bassOsc;
-    float bassGain = 1.0f;
+    SineOsc chordOsc1, chordOsc2, chordOsc3;
+    SineOsc extensionOsc1, extensionOsc2;
+
+
+    /*--GENERAL envelopes--*/
     
     Envelope chordOscEnvelope;
-    
-    SineOsc chordOsc1;
-    SineOsc chordOsc2;
-    SineOsc chordOsc3;
-    float chordGain = 1.0f;
+    Envelope bassOscEnvelope;
+    Envelope extentionOscEnvelope;
 
     
-    SineOsc myOsc5;
-    SineOsc myOsc6;
+    /*--VRBs & DLYs--*/
+    juce::Reverb generalReverb;
+    juce::Reverb::Parameters reverbParams;
+
     
+
+
+      //==============//
+     //~~PARAMETERS~~//
+    //==============//
     
-    //parameters
+     /*--GENERAL parameters--*/
+    
+    juce::AudioProcessorValueTreeState generalParameters;
     
     std::atomic<float>* bassGainParam;
+    juce::SmoothedValue<float> smoothBassGain;
+    
     std::atomic<float>* chordGainParam;
+    juce::SmoothedValue<float> smoothChordGain;
+    
+    std::atomic<float>* reverbAmountParam;
+    juce::SmoothedValue<float> smoothReverbAmount;
+    
+    std::atomic<float>* reverbSizeParam;
+    juce::SmoothedValue<float> smoothReverbSize;
+    
+    
+    /*--SYNTH parameters--*/
+    
+    juce::AudioProcessorValueTreeState synthParameters;
+    
+    std::atomic<float>* detuneParam;
+    
+    std::atomic<float>* synthVoiceGainParam;
+
+    
+    std::atomic<float>* ampAttackParam;
+    std::atomic<float>* ampDecayParam;
+    std::atomic<float>* ampSustainParam;
+    std::atomic<float>* ampReleaseParam;
 
     
     
-    //debug resolution
+
+    /*--MISC--*/
+    double smoothRampingTime = 0.1;//------>time ramp for smothed values
+    DebugResolutionTool drt;//------------->generic debug tool
+    float sr;//---------------------------->project sample rate
+    float genProtectionGain = 0.3f;//------>protection gain applied at the and of the general DSP loop
     
-    DebugResolutionTool drt;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HummingBotAudioProcessor)
 };
