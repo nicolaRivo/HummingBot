@@ -66,13 +66,29 @@ public:
     void init (float sampleRate)
     {
         myOsc.setSampleRate(sampleRate);
+        env.setSampleRate(sampleRate);
+        juce::ADSR::Parameters envParams;
+        
+        
+        envParams.attack = 1.0f;
+        envParams.decay = 1.0f;
+        envParams.sustain = 0.5f;
+        envParams.release = 1.0f;
+
+        env.setParameters(envParams);
+
     }
     
     
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound*, int /*currentPitchWheelPosition*/) override
     {
-        playing = true;
-        myOsc.setFrequency(440);
+        if(midiNoteNumber != 36){
+            playing = true;
+            ending = false;
+            myOsc.setFrequency(midiToFrequency(midiNoteNumber));
+            env.reset();
+            env.noteOn();
+        }
     }
     //--------------------------------------------------------------------------
     /// Called when a MIDI noteOff message is received
@@ -84,8 +100,9 @@ public:
      */
     void stopNote(float /*velocity*/, bool allowTailOff) override
     {
-        clearCurrentNote();
-        playing = false;
+        env.noteOff();
+        ending = true;
+
     }
     
     //--------------------------------------------------------------------------
@@ -107,7 +124,8 @@ public:
             {
 //                // your sample-by-sample DSP code here!
 //                // An example white noise generater as a placeholder - replace with your own code
-//                
+//
+                float envVal = env.getNextSample();
                 float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
                 currentSample = myOsc.process();
 
@@ -117,6 +135,15 @@ public:
                 {
                     // The output sample is scaled by 0.2 so that it is not too loud by default
                     outputBuffer.addSample (chan, sampleIndex, currentSample * 0.2);
+                }
+                
+                if (ending)
+                {
+                    if (envVal <0.00001f)
+                    {
+                        clearCurrentNote();
+                        playing = false;
+                    }
                 }
             }
         }
@@ -142,7 +169,9 @@ private:
     // Set up any necessary variables here
     /// Should the voice be playing?
     bool playing = false;
+    bool ending = false;
     SineOsc myOsc;
 
+    juce::ADSR env;
 
 };
