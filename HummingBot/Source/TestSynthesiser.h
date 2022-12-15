@@ -12,6 +12,7 @@
 #include "Oscillators.h"
 #include "Envelope.h"
 #include <vector>
+#include "AddSynth.h"
 // ===========================
 // ===========================
 // SOUND
@@ -66,25 +67,34 @@ public:
     void init (float sampleRate)
     {
         myOsc.setSampleRate(sampleRate);
+        myOsc.initialiseHarmonics();
+
         detuneOsc.setSampleRate(sampleRate);
+        detuneOsc.initialiseHarmonics();
+
         env.setSampleRate(sampleRate);
-        juce::ADSR::Parameters envParams;
-        
-        
-        envParams.attack = 1.0f;
-        envParams.decay = 1.0f;
-        envParams.sustain = 0.5f;
-        envParams.release = 1.0f;
-
-        env.setParameters(envParams);
-
     }
     
+    void setSynthVoiceGain(float _synthVoiceGain)
+    {
+        synthVoiceGain = _synthVoiceGain;
+    }
+
     
     void setDetune (float detuneIn)
     {
         detuneAmount = detuneIn;
     }
+    
+    void setADSR (float _attack, float _decay, float _sustain, float _release)
+    {
+        attack = _attack;
+        decay = _decay;
+        sustain = _sustain;
+        release = _release;
+        
+    }
+    
     
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound*, int /*currentPitchWheelPosition*/) override
     {
@@ -93,7 +103,15 @@ public:
             ending = false;
             freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
             
-            myOsc.setFrequency(freq);
+            envParams.attack = attack;
+            envParams.decay = decay;
+            envParams.sustain = sustain;
+            envParams.release = release;
+
+            env.setParameters(envParams);
+            
+            
+            myOsc.setFundFreq(freq);
 
             env.reset();
             env.noteOn();
@@ -129,7 +147,7 @@ public:
         if (playing) // check to see if this voice should be playing
         {
             
-            detuneOsc.setFrequency(freq - detuneAmount);
+            detuneOsc.setFundFreq(freq - detuneAmount);
 
             
             
@@ -141,14 +159,16 @@ public:
 //
                 float envVal = env.getNextSample();
                 float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
-                currentSample = (myOsc.process() + detuneOsc.process()) / 2.0f * envVal;
+                currentSample = (myOsc.processComplex() + detuneOsc.processComplex()) / 2.0f * envVal;
 
+                
+                currentSample *= synthVoiceGain;
                 
                 // for each channel, write the currentSample float to the output
                 for (int chan = 0; chan<outputBuffer.getNumChannels(); chan++)
                 {
-                    // The output sample is scaled by 0.2 so that it is not too loud by default
-                    outputBuffer.addSample (chan, sampleIndex, currentSample * 0.2);
+                    // The output sample is scaled by synthProtectionGain so that it is not too loud by default
+                    outputBuffer.addSample (chan, sampleIndex, currentSample * synthProtectionGain);
                 }
                 
                 if (ending)
@@ -185,14 +205,27 @@ private:
     
     bool playing = false;
     bool ending = false;
-    SineOsc myOsc, detuneOsc;
+    
+    AddSynth myOsc, detuneOsc;
     
     float freq ;//---------------the frequecy value that will be used to generate the synthesiser note
     
+    
+    float synthVoiceGain = 0.4f;
     float detuneAmount = 2.0f;
+    
+    juce::ADSR::Parameters envParams;
+    float attack;
+    float decay;
+    float sustain;
+    float release;
+    
 
     
     
     juce::ADSR env;
+    
+    
+    float synthProtectionGain = 0.3f;
 
 };
