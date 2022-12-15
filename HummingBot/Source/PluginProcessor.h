@@ -16,6 +16,7 @@
 #include "TestSynthesiser.h"
 #include "HumanSynthesiser.h"
 #include "Oscillators.h"
+#include "debugResolutionTool.h"
 
 //==============================================================================
 /**
@@ -78,6 +79,8 @@ public:
     
 private:
     
+    juce::AudioProcessorValueTreeState apvts;
+    
     juce::Synthesiser humanSynth;
     juce::Synthesiser computerSynth;
 
@@ -85,10 +88,8 @@ private:
 
     SineOsc mySineOsc;
     
-    int computerVoiceCount = 4;
-    int humanVoiceCount = 4;
-    
-    int testVoiceCount = 1;
+
+    int testVoiceCount = 16;
     
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
@@ -117,18 +118,30 @@ private:
     Envelope bassOscEnvelope;
     
     TriOsc bassOsc;
-    
+    float bassGain = 1.0f;
     
     Envelope chordOscEnvelope;
     
     SineOsc chordOsc1;
     SineOsc chordOsc2;
     SineOsc chordOsc3;
+    float chordGain = 1.0f;
+
     
     SineOsc myOsc5;
     SineOsc myOsc6;
     
     
+    //parameters
+    
+    std::atomic<float>* bassGainParam;
+    std::atomic<float>* chordGainParam;
+
+    
+    
+    //debug resolution
+    
+    DebugResolutionTool drt;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HummingBotAudioProcessor)
 };
