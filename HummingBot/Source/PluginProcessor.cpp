@@ -120,6 +120,15 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     
     
     //DSP LOOP STUFF
+    concludeOldHarmony.setSampleRate(sampleRate);
+    concludeOldHarmony.setParameters(0.001f, 0.001f, 1.0f, 1.0f, 1.0f);
+    concludeOldHarmony.reset();
+    
+    beginNewHarmony.setSampleRate(sampleRate);
+    beginNewHarmony.setParameters(1.0f, 0.001f, 1.0f, 0.0f, 0.0f);
+    beginNewHarmony.reset();
+    
+    
     bassOsc.setSampleRate(sampleRate);
     bassOscEnvelope.setSampleRate(sampleRate);
     bassOscEnvelope.toggleRetrigger(true);
@@ -210,53 +219,78 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     midiProcessor.setPrioritizeKeyChange(*prioritiseKeyChangeParam);
     
-    midiProcessor.process(midiMessages, harmonyNotes, chordDegreePointer, allowSynthNotesPointer);//---*process the incoming MIDI messages
+    midiProcessor.process(midiMessages, harmonyNotes, chordDegreePointer, allowSynthNotesPointer, beginHarmonySwitchPointer);//---*process the incoming MIDI messages
+    
+    
     int sumArr=0;
     
     for(int i = 0; i<7;i++)
         sumArr += harmonyNotes[i];
    
-    
-    if(sumArr<100 && sumArr>0)
+    if (beginHarmonySwitch)
     {
-        bassFirstCycle = true;
-        std::cout<< "\n\n I am in the .cpp file, new chord degree is "<< chordDegree <<" \n\n";
+        
+        concludingOldHarmony = true;
+        
+        // 1) resetta concludeOldHarmony e beginNewHarmony
+        concludeOldHarmony.trigger();
+        beginNewHarmony.trigger();
 
-        for(int i = 0; i<7;i++)
+        // 2) moltiplica tutto il DSP generico per concludeOldHarmony envelope
+        
+        
+        // 3) quando concludeOldHarmony è praticamente zero, smetti di processarlo switcha l'armonia
+        if (processedConcludeOldHarmony < 0.01)
         {
-            harmonyArray[i] = harmonyNotes[i];
+            concludingOldHarmony = false;
+            beginningNewHarmony = true;
+            
+            if(beginHarmonySwitch){
+                //SWITCH THE HARMONY
+                bassFirstCycle = true;
+                
+                std::cout<< "\n\n I am in the .cpp file, new chord degree is "<< chordDegree <<" \n\n";
+                
+                for(int i = 0; i<7;i++)
+                {
+                    harmonyArray[i] = harmonyNotes[i];
+                }
+                
+                root = harmonyArray[0];
+                fifth = harmonyArray[1];
+                guideTones[0] = harmonyArray[2];//3rd
+                guideTones[1] = harmonyArray[3];//7th
+                extensions[0] = harmonyArray[4];//9th
+                
+                if (chordDegree == 1 || chordDegree == 5 )
+                {
+                    extensions[1] = harmonyArray[5];//if chord is minor, second extension will be 11th
+                } else if (chordDegree == 0 || chordDegree == 4 )
+                {
+                    extensions[1] = harmonyArray[6];//if chord is minor, second extension will be 13th
+                } else if (chordDegree == 2 )
+                {
+                    extensions[0] +=1; //if we are dealing with the prhigian chord, avoid using the minor 9th as an extension, chose the major 9th instead
+                    extensions[1] = harmonyArray[5] ;
+                } else if (chordDegree == 3 )
+                {
+                    extensions[1] = 2; //if we are dealing with the lydian chord, use the #11 as the second extension
+                }
+                
+                beginHarmonySwitch = false;
+            }
+            // 4)  moltiplica tutto il DSP generico per beginNewHarmony envelope
         }
-        
-        root = harmonyArray[0];
-        fifth = harmonyArray[1];
-        guideTones[0] = harmonyArray[2];//3rd
-        guideTones[1] = harmonyArray[3];//7th
-        extensions[0] = harmonyArray[4];//9th
-
-        if (chordDegree == 1 || chordDegree == 5 )
-        {
-            extensions[1] = harmonyArray[5];//if chord is minor, second extension will be 11th
-        } else if (chordDegree == 0 || chordDegree == 4 )
-        {
-            extensions[1] = harmonyArray[6];//if chord is minor, second extension will be 13th
-        } else if (chordDegree == 2 )
-        {
-            extensions[0] +=1; //if we are dealing with the prhigian chord, avoid using the minor 9th as an extension, chose the major 9th instead
-            extensions[1] = harmonyArray[5] ;
-        } else if (chordDegree == 3 )
-        {
-            extensions[1] = 2; //if we are dealing with the lydian chord, use the #11 as the second extension
-        }
-        
-
-        
     }
+    // 5) quando beginNewHarmony è praticamente uno, imposta beginHarmonySwitch falso e smetti di processare l'envelope beginNewHarmony
 
-   
-    //computerSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-
-    //humanSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    if(processedBeginNewHarmony > 0.99f && beginningNewHarmony==true)
+    {
+        beginNewHarmony.reset();
+    }
     
+
+
     for (int i = 0; i < testVoiceCount; i++)
     {
         TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
@@ -314,10 +348,6 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     for (int i = 0; i < numSamples; i++)
     {
-        
-        
-        
-
         
         //START OF Bass randomization
         if(bassFirstCycle)
@@ -395,24 +425,24 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
                     if(random.nextInt(100)<50)
                     {
                         extensionOsc1.setFrequency(extensionsFreq[0]);
-                        std::cout << "extension 1 is the first!\n\n";
+                        //std::cout << "extension 1 is the first!\n\n";
                         
                     } else
                     {
                         extensionOsc1.setFrequency(extensionsFreq[1]);
-                        std::cout << "extension 1 is the second!\n\n";
+                        //std::cout << "extension 1 is the second!\n\n";
                     }
                 } else
                 {
                     if(random.nextInt(100)<50)
                     {
                         extensionOsc1.setFrequency(rootFreq*3);
-                        std::cout << "extension 1 is the root!\n\n";
+                        //std::cout << "extension 1 is the root!\n\n";
                         
                     } else
                     {
                         extensionOsc1.setFrequency(fifthFreq*3);
-                        std::cout << "extension 1 is the fifth!\n\n";
+                        //std::cout << "extension 1 is the fifth!\n\n";
                     }
                     
                 }
@@ -440,24 +470,24 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
                     if(random.nextInt(100)<50)
                     {
                         extensionOsc2.setFrequency(extensionsFreq[0]);
-                        std::cout << "extension 2 is the first!\n\n";
+                        //std::cout << "extension 2 is the first!\n\n";
                         
                     } else
                     {
                         extensionOsc2.setFrequency(extensionsFreq[1]);
-                        std::cout << "extension 2 is the second!\n\n";
+                        //std::cout << "extension 2 is the second!\n\n";
                     }
                 } else
                 {
                     if(random.nextInt(100)<50)
                     {
                         extensionOsc2.setFrequency(rootFreq*3);
-                        std::cout << "extension 2 is the root!\n\n";
+                        //std::cout << "extension 2 is the root!\n\n";
                         
                     } else
                     {
                         extensionOsc2.setFrequency(fifthFreq*3);
-                        std::cout << "extension 2 is the fifth!\n\n";
+                       // std::cout << "extension 2 is the fifth!\n\n";
                     }
                     
                 }
@@ -564,7 +594,30 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         
         for (int i = 0; i < samples.size(); i++)
         {
-            currentSample += samples[i];
+            currentSample += samples[i] ;
+            
+            if (concludingOldHarmony)
+                processedConcludeOldHarmony = concludeOldHarmony.process();
+
+            if (concludeOldHarmony.getNodeName()=="release")
+                int here;
+            
+            
+            if(concludeOldHarmony.getNodeName()!="attack" && concludingOldHarmony)
+            {
+                currentSample *= processedConcludeOldHarmony;
+            }
+            
+            if (processedBeginNewHarmony>0.9999f)
+                beginningNewHarmony=false;
+
+            
+            if( beginningNewHarmony)
+            {
+                processedBeginNewHarmony = beginNewHarmony.process();
+                currentSample *= processedBeginNewHarmony;
+            }
+            
         }
 
         currentSample /= samples.size();

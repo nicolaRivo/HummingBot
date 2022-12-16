@@ -14,7 +14,7 @@ class MidiProcessor
 {
 public:
     
-    void process(juce::MidiBuffer& midiMessages, int* currentHarmony, int* chordDegree, bool* allowSynthNotes)
+    void process(juce::MidiBuffer& midiMessages, int* currentHarmony, int* chordDegree, bool* allowSynthNotes, bool* beginHarmonySwitch)
     {
         juce::MidiBuffer::Iterator it(midiMessages);
         juce::MidiMessage currentMessage;
@@ -37,7 +37,7 @@ public:
                  if(debug) std::cout << "enterHarmonyMode = " << enterHarmonyMode<< "\n";
             }
             
-            //if the note associated with enterHarmonyMode is releas3ed, we exit the harmony mode
+            //if the note associated with enterHarmonyMode is released, we exit the harmony mode
             if (currentMessage.getNoteNumber() == 36 && currentMessage.getFloatVelocity()==0 )
             {
                 enterHarmonyMode = 0;
@@ -144,7 +144,8 @@ public:
                             
                             if(!noPossibleChord){
                                 
-                                *chordDegree = degreeToNumber[currentScaleDegree];
+                                *beginHarmonySwitch = true; //begin the process of fading out old harmony and fading in new harmony
+                                *chordDegree = degreeToNumber[currentScaleDegree]; //pass out the new scale degree
                                 
                                 std::cout << "among these we chose for you " << currentScaleDegree <<"\n";
                                 

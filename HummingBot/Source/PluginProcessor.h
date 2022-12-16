@@ -94,9 +94,18 @@ private:
     std::vector<std::string> possibleHarmonies;
     
     Envelope concludeOldHarmony;
-    Envelope beginNewHarmony;
+    float processedConcludeOldHarmony = 0.2f;
+    bool concludingOldHarmony = false;
     
-
+    Envelope beginNewHarmony;
+    float processedBeginNewHarmony;
+    bool beginningNewHarmony = false;
+    
+    
+    bool beginHarmonySwitch;
+    bool* beginHarmonySwitchPointer = &beginHarmonySwitch;
+    
+    
     /*--HARMONY variables--*/
     int harmonyArray[7];
 

@@ -161,7 +161,10 @@ public:
         }
     }
     
-    
+    void reset()
+    {
+        timeFlow = 0.0f;
+    }
     /**
      sets all the needed parameters for the envelope
      @param _attack float attack time in seconds
