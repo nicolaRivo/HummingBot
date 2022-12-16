@@ -13,6 +13,8 @@
 #include "Envelope.h"
 #include <vector>
 #include "AddSynth.h"
+#include "PluginProcessor.h"
+
 // ===========================
 // ===========================
 // SOUND
@@ -52,6 +54,14 @@ public:
      @param SynthesiserSound unused variable
      @param / unused variable
      */
+    
+    
+    void setAllowSynthNotes(bool _allowSynthNotes)
+    {
+     
+        allowSynthNotes = _allowSynthNotes;
+        
+    }
     
     float midiToFrequency( int midiValue){
         //float floatMidiValue = (float) midiValue;
@@ -96,7 +106,8 @@ public:
     
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound*, int /*currentPitchWheelPosition*/) override
     {
-        if(midiNoteNumber != 36){
+        if(midiNoteNumber != 36 && allowSynthNotes)
+        {
             playing = true;
             ending = false;
             freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
@@ -127,6 +138,7 @@ public:
     {
         env.noteOff();
         ending = true;
+        allowSynthNotes = true;
 
     }
     
@@ -220,7 +232,7 @@ private:
     float sustain;
     float release;
     
-
+    bool allowSynthNotes = true;
     
     
     juce::ADSR env;
