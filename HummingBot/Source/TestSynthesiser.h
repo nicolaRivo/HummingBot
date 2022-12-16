@@ -67,10 +67,8 @@ public:
     void init (float sampleRate)
     {
         myOsc.setSampleRate(sampleRate);
-        myOsc.initialiseHarmonics();
 
         detuneOsc.setSampleRate(sampleRate);
-        detuneOsc.initialiseHarmonics();
 
         env.setSampleRate(sampleRate);
     }
@@ -111,7 +109,7 @@ public:
             env.setParameters(envParams);
             
             
-            myOsc.setFundFreq(freq);
+            myOsc.setFrequency(freq);
 
             env.reset();
             env.noteOn();
@@ -147,7 +145,7 @@ public:
         if (playing) // check to see if this voice should be playing
         {
             
-            detuneOsc.setFundFreq(freq - detuneAmount);
+            detuneOsc.setFrequency(freq - detuneAmount);
 
             
             
@@ -159,7 +157,7 @@ public:
 //
                 float envVal = env.getNextSample();
                 float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
-                currentSample = (myOsc.processComplex() + detuneOsc.processComplex()) / 2.0f * envVal;
+                currentSample = (myOsc.process() + detuneOsc.process()) / 2.0f * envVal;
 
                 
                 currentSample *= synthVoiceGain;
@@ -206,7 +204,9 @@ private:
     bool playing = false;
     bool ending = false;
     
-    AddSynth myOsc, detuneOsc;
+    SawToothOsc myOsc, detuneOsc;
+    
+    
     
     float freq ;//---------------the frequecy value that will be used to generate the synthesiser note
     

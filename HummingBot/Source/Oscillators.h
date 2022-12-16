@@ -179,6 +179,24 @@ private:
 };
 
 
+class SawToothOsc : public Phasor{
+public:
+    SawToothOsc()
+    {
+        setOscKind("Saw Tooth Wave");
+    }
+    
+    float output (float phase) override
+    {
+        float outputValue = phase - 0.5f;
+        
+        return outputValue;
+    }
+    
+    
+};
+
+
 
 class LFO : public Phasor
 {

@@ -14,7 +14,7 @@ class MidiProcessor
 {
 public:
     
-    void process(juce::MidiBuffer& midiMessages, int* currentHarmony)
+    void process(juce::MidiBuffer& midiMessages, int* currentHarmony, int* chordDegree)
     {
         juce::MidiBuffer::Iterator it(midiMessages);
         juce::MidiMessage currentMessage;
@@ -27,6 +27,7 @@ public:
 //             if(debug) std::cout << currentMessage.getNoteNumber() << "\n";
 //             if(debug) std::cout << currentMessage.getFloatVelocity() << "\n";
             
+            hr.setPrioritizeKeyChange(prioritizeKeyChange);
             
             //if the note associated with enterHarmonyMode is pressed, we enter the harmony mode
             if (currentMessage.getNoteNumber() == 36 && currentMessage.getFloatVelocity()!=0 )
@@ -139,6 +140,8 @@ public:
                             
                             if(!noPossibleChord){
                                 
+                                *chordDegree = degreeToNumber[currentScaleDegree];
+                                
                                 std::cout << "among these we chose for you " << currentScaleDegree <<"\n";
                                 
                                 std::cout << "\n===================================================\n\n";
@@ -209,11 +212,19 @@ public:
         return storedNotesCollection;
     }
     
+    void setPrioritizeKeyChange (bool b)
+    {
+        prioritizeKeyChange = b;
+    }
+    
     
 private:
     bool debug = 0;
     bool enterHarmonyMode = 0;
     int maxHarmonyInput = 4;
+    
+    bool prioritizeKeyChange = true;
+    
     std::vector<int> newNotesCollection;
     std::string currentKeyCentre = "C";
     std::vector<int> storedNotesCollection;

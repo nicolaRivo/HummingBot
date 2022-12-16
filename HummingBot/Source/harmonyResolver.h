@@ -370,6 +370,11 @@ public:
         
     }
     
+    void setPrioritizeKeyChange (bool b)
+    {
+        prioritizeKeyChange = b;
+    }
+    
     void setCurrentMajorScale (std::string _currentMajorScale)
     {
         currentMajorScale = _currentMajorScale;

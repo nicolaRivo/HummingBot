@@ -104,6 +104,14 @@ private:
     float extensionsFreq[3];
 
     
+    int chordDegree;
+    int * chordDegreePointer = &chordDegree;
+    
+    bool prioritiseKeyChange;
+
+    //chordDegreePointer = &chordDegree;
+
+    
     /*--GENERAL oscillators--*/
 
     TriOsc bassOsc;
@@ -140,6 +148,7 @@ private:
     std::atomic<float>* chordGainParam;
     juce::SmoothedValue<float> smoothChordGain;
     
+    
     std::atomic<float>* reverbAmountParam;
     juce::SmoothedValue<float> smoothReverbAmount;
     
@@ -147,6 +156,9 @@ private:
     juce::SmoothedValue<float> smoothReverbSize;
     
     
+    std::atomic<float>* prioritiseKeyChangeParam;
+
+
     /*--SYNTH parameters--*/
     
     juce::AudioProcessorValueTreeState synthParameters;

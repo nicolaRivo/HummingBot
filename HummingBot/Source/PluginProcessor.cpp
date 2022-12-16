@@ -25,7 +25,7 @@ generalParameters(*this, nullptr, "GeneralParameters", {
     std::make_unique<juce::AudioParameterFloat>("bass_gain",   "Arrangement : Bass Gain",   0.00001f, 1.0f, 0.7f),
     std::make_unique<juce::AudioParameterFloat>("chord_gain",  "Arrangement : Chords Gain", 0.00001f, 1.0f, 0.7f),
     std::make_unique<juce::AudioParameterFloat>("reverb_amount",    "Reverb : Amount",      0.00001f, 1.0f, 0.3f),
-    std::make_unique<juce::AudioParameterFloat>("reverb_size",      "Reverb : Size",        0.00001f, 1.0f, 0.3f)
+    std::make_unique<juce::AudioParameterFloat>("reverb_size",      "Reverb : Size",        0.00001f, 1.0f, 0.3f),
 
 
 }),
@@ -164,6 +164,8 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     buffer.clear();//------------------------------------>clear the MIDI  buffer of any potential MIDI  that remained there from previous cycle
 
     
+    
+    
     /*--SMOOTHING parameters--*/
     
     smoothBassGain.setTargetValue(*bassGainParam);
@@ -174,23 +176,25 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     
  
-    int arr[7];
+    int harmonyNotes[7];
     
-    midiProcessor.process(midiMessages, arr);//---*process the incoming MIDI messages
+    
+    midiProcessor.setPrioritizeKeyChange(prioritiseKeyChange);
+    
+    midiProcessor.process(midiMessages, harmonyNotes, chordDegreePointer);//---*process the incoming MIDI messages
     int sumArr=0;
     
     for(int i = 0; i<7;i++)
-        sumArr += arr[i];
+        sumArr += harmonyNotes[i];
    
     
     if(sumArr<100 && sumArr>0)
     {
-        std::cout<< "\n\n SumArray is "<< sumArr<<" \n\n";
+        std::cout<< "\n\n I am in the .cpp file, new chord degree is "<< chordDegree <<" \n\n";
 
         for(int i = 0; i<7;i++)
         {
-            harmonyArray[i] = arr[i];
-            std::cout<< "\n\n I am in the .cpp file "<< arr[i]<<" \n\n";
+            harmonyArray[i] = harmonyNotes[i];
         }
         
         root = harmonyArray[0];
