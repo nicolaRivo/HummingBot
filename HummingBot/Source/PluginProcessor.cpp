@@ -22,10 +22,12 @@ HummingBotAudioProcessor::HummingBotAudioProcessor()
                        ),
 #endif
 generalParameters(*this, nullptr, "GeneralParameters", {
-    std::make_unique<juce::AudioParameterFloat>("bass_gain",   "Arrangement : Bass Gain",   0.00001f, 1.0f, 0.7f),
-    std::make_unique<juce::AudioParameterFloat>("chord_gain",  "Arrangement : Chords Gain", 0.00001f, 1.0f, 0.7f),
-    std::make_unique<juce::AudioParameterFloat>("reverb_amount",    "Reverb : Amount",      0.00001f, 1.0f, 0.3f),
-    std::make_unique<juce::AudioParameterFloat>("reverb_size",      "Reverb : Size",        0.00001f, 1.0f, 0.3f),
+    std::make_unique<juce::AudioParameterFloat>("bass_gain",                    "Arrangement : Bass Gain",          0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterFloat>("chord_gain",                   "Arrangement : Chord Gain",         0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterFloat>("extension_gain",               "Arrangement : Extensions Gain",    0.00001f, 1.0f, 0.7f),
+    std::make_unique<juce::AudioParameterChoice>("prioritise_key_change",       "Arrangement : Prioritise Key Change", juce::StringArray({"No","Yes"}), 1),
+    std::make_unique<juce::AudioParameterFloat>("reverb_amount",                     "Reverb : Amount",             0.00001f, 1.0f, 0.3f),
+    std::make_unique<juce::AudioParameterFloat>("reverb_size",                       "Reverb : Size",               0.00001f, 1.0f, 0.3f)
 
 
 }),
@@ -35,10 +37,10 @@ synthParameters(*this, nullptr, "SynthParameters", {
     std::make_unique<juce::AudioParameterFloat>("voice_detune",      "Voice : Detune",   0.0f, 20.0f, 2.0f),
     
     
-    std::make_unique<juce::AudioParameterFloat>("amp_attack",   "AMP : Attack",     0.0001f, 3.0f, 0.5f),
-    std::make_unique<juce::AudioParameterFloat>("amp_decay",    "AMP : Decay",      0.0001f, 3.0f, 0.1f),
+    std::make_unique<juce::AudioParameterFloat>("amp_attack",   "AMP : Attack",     0.01f, 3.0f, 0.5f),
+    std::make_unique<juce::AudioParameterFloat>("amp_decay",    "AMP : Decay",      0.01f, 3.0f, 0.1f),
     std::make_unique<juce::AudioParameterFloat>("amp_sustain",  "AMP : Sustain",    0.0001f, 1.00f, 0.5f),
-    std::make_unique<juce::AudioParameterFloat>("amp_release",  "AMP : Release",    0.0001f, 3.0f, 0.5f)
+    std::make_unique<juce::AudioParameterFloat>("amp_release",  "AMP : Release",    0.01f, 3.0f, 0.5f)
 
 })
 
@@ -54,12 +56,15 @@ synthParameters(*this, nullptr, "SynthParameters", {
 
     bassGainParam  = generalParameters.getRawParameterValue("bass_gain");
     chordGainParam = generalParameters.getRawParameterValue("chord_gain");
+    extensionGainParam = generalParameters.getRawParameterValue("extension_gain");
+
 
     reverbAmountParam  = generalParameters.getRawParameterValue("reverb_amount");
     reverbSizeParam = generalParameters.getRawParameterValue("reverb_size");
     
+    prioritiseKeyChangeParam = generalParameters.getRawParameterValue("prioritise_key_change");
+    
     /*--SYNTH parameters--*/
-
     synthVoiceGainParam = synthParameters.getRawParameterValue("voice_gain");
     detuneParam = synthParameters.getRawParameterValue("voice_detune");
 
@@ -104,11 +109,14 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 {
         synth.setCurrentPlaybackSampleRate(sampleRate);
     
+    
         for (int i = 0; i < testVoiceCount; i++)
         {
             TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
             v->init(sampleRate);
         }
+    
+    
     
     
     //DSP LOOP STUFF
@@ -119,13 +127,28 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     chordOscEnvelope.setSampleRate(sampleRate);
     chordOscEnvelope.setParameters(0.3, 1, 0.6, 3, 3);
     chordOscEnvelope.toggleRetrigger(true);
+    
+    extensionOneOscEnvelope.setSampleRate(sampleRate);
+    extensionOneOscEnvelope.setParameters(0.1, 0.05, 0.6, 0.0, 0.1);
+    extensionOneOscEnvelope.toggleRetrigger(true);
+    
+    extensionTwoOscEnvelope.setSampleRate(sampleRate);
+    extensionTwoOscEnvelope.setParameters(0.1, 0.07, 0.3, 0.1, 0.15);
+    extensionTwoOscEnvelope.toggleRetrigger(true);
 
     chordOsc1.setSampleRate(sampleRate);
     chordOsc2.setSampleRate(sampleRate);
     chordOsc3.setSampleRate(sampleRate);
+    chordOsc4.setSampleRate(sampleRate);
     
     extensionOsc1.setSampleRate(sampleRate);
     extensionOsc2.setSampleRate(sampleRate);
+
+    //initialise all delays
+    
+    extensionDelay.setSizeInSamples(sampleRate * 5);
+    extensionDelay.setDelayTimeInSamples(sampleRate * 0.1);
+    extensionDelay.setFeedbackAmt(0.6f);
     
     
     /*--SMOOTHING parameters--*/
@@ -135,6 +158,9 @@ void HummingBotAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     smoothChordGain.reset(sampleRate, smoothRampingTime);
     smoothChordGain.setCurrentAndTargetValue(0.0);
 
+    smoothExtensionGain.reset(sampleRate, smoothRampingTime);
+    smoothExtensionGain.setCurrentAndTargetValue(0.0);
+    
     smoothReverbAmount.reset(sampleRate, smoothRampingTime);
     smoothReverbAmount.setCurrentAndTargetValue(0.0);
     
@@ -157,6 +183,7 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 {
     
     
+    
     //    juce::ScopedNoDenormals noDenormals;
     int numSamples = buffer.getNumSamples();//----------->get the number of samples for each block
     float* leftChannel = buffer.getWritePointer(0);//---->get pointer to the left channel
@@ -170,6 +197,8 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     smoothBassGain.setTargetValue(*bassGainParam);
     smoothChordGain.setTargetValue(*chordGainParam);
+    smoothExtensionGain.setTargetValue(*extensionGainParam);
+
     
     smoothReverbAmount.setTargetValue(*reverbAmountParam);
     smoothReverbSize.setTargetValue(*reverbSizeParam);
@@ -179,9 +208,9 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     int harmonyNotes[7];
     
     
-    midiProcessor.setPrioritizeKeyChange(prioritiseKeyChange);
+    midiProcessor.setPrioritizeKeyChange(*prioritiseKeyChangeParam);
     
-    midiProcessor.process(midiMessages, harmonyNotes, chordDegreePointer);//---*process the incoming MIDI messages
+    midiProcessor.process(midiMessages, harmonyNotes, chordDegreePointer, allowSynthNotesPointer);//---*process the incoming MIDI messages
     int sumArr=0;
     
     for(int i = 0; i<7;i++)
@@ -190,6 +219,7 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     if(sumArr<100 && sumArr>0)
     {
+        bassFirstCycle = true;
         std::cout<< "\n\n I am in the .cpp file, new chord degree is "<< chordDegree <<" \n\n";
 
         for(int i = 0; i<7;i++)
@@ -199,11 +229,26 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         
         root = harmonyArray[0];
         fifth = harmonyArray[1];
-        guideTones[0] = harmonyArray[2];
-        guideTones[1] = harmonyArray[3];
-        extensions[0] = harmonyArray[4];
-        extensions[1] = harmonyArray[5];
-        extensions[2] = harmonyArray[6];
+        guideTones[0] = harmonyArray[2];//3rd
+        guideTones[1] = harmonyArray[3];//7th
+        extensions[0] = harmonyArray[4];//9th
+
+        if (chordDegree == 1 || chordDegree == 5 )
+        {
+            extensions[1] = harmonyArray[5];//if chord is minor, second extension will be 11th
+        } else if (chordDegree == 0 || chordDegree == 4 )
+        {
+            extensions[1] = harmonyArray[6];//if chord is minor, second extension will be 13th
+        } else if (chordDegree == 2 )
+        {
+            extensions[0] +=1; //if we are dealing with the prhigian chord, avoid using the minor 9th as an extension, chose the major 9th instead
+            extensions[1] = harmonyArray[5] ;
+        } else if (chordDegree == 3 )
+        {
+            extensions[1] = 2; //if we are dealing with the lydian chord, use the #11 as the second extension
+        }
+        
+
         
     }
 
@@ -231,10 +276,13 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         v->setADSR(*ampAttackParam, *ampDecayParam, *ampSustainParam, *ampReleaseParam);
     }
     
-    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
     
-    
+    for (int i = 0; i < testVoiceCount; i++)
+    {
+        TestSynthVoice* v = dynamic_cast<TestSynthVoice*>(synth.getVoice(i));
+        v->setAllowSynthNotes(allowSynthNotes);
+    }
     
     
 
@@ -244,21 +292,21 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     guideTonesFreq[1] = midiToFrequency(guideTones[1] + octaves(6));
     extensionsFreq[0] = midiToFrequency(extensions[0] + octaves(8));
     extensionsFreq[1] = midiToFrequency(extensions[1] + octaves(8));
-    extensionsFreq[2] = midiToFrequency(extensions[2] + octaves(8));
 
+  
     
-    
-    bassOsc.setFrequency(midiToFrequency(root + octaves(4)));
    // myOsc1.setFrequency(rootFreq);
 
     chordOsc1.setFrequency(midiToFrequency(root + octaves(5)));
     chordOsc2.setFrequency(midiToFrequency(fifth + octaves(5)));
     chordOsc3.setFrequency(midiToFrequency(guideTones[0] + octaves(5)));
+    chordOsc4.setFrequency(midiToFrequency(guideTones[1] + octaves(5)));
+
     
     
     
-    extensionOsc1.setFrequency(extensionsFreq[0]);
-    extensionOsc2.setFrequency(extensionsFreq[1]);
+    //extensionOsc1.setFrequency(extensionsFreq[0]);
+    //extensionOsc2.setFrequency(extensionsFreq[1]);
     
     /* ===============
     ||DSP LOOP start||
@@ -267,21 +315,176 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (int i = 0; i < numSamples; i++)
     {
         
-        // your sample-by-sample DSP code here!
-        // An example white noise generater as a placeholder - replace with your own code
         
+        
+
+        
+        //START OF Bass randomization
+        if(bassFirstCycle)
+            bassOsc.setFrequency(midiToFrequency(root + octaves(4)));
+
+        if(processedBassOscEnvelope<0.03f && bassWasAudible && bassIsRoot == true)
+        {
+            bassFirstCycle = false;
+            bassWasAudible = false;
+            if( random.nextInt(100)<90 )
+            {
+                if(random.nextInt(100)<50)
+                {
+                    bassOsc.setFrequency(fifthFreq);
+                    bassIsRoot = false;
+                } else
+                {
+                    bassOsc.setFrequency(rootFreq * 2);
+                    bassIsRoot = false;
+                }
+            }
+        }
+        
+        
+        if(processedBassOscEnvelope<0.03f && bassWasAudible && bassIsRoot == false)
+        {
+            bassWasAudible=false;
+            bassOsc.setFrequency(rootFreq);
+            bassIsRoot = true;
+        }
+        
+        
+        if(processedBassOscEnvelope>0.03f)
+            bassWasAudible=true;
+        
+        //END OF Bass randomization
+
+        
+        
+        //START OF Chord randomization
+
+
+        if(processedChordOscEnvelope<0.03f && chordWasAudible)
+        {
+            chordWasAudible=false;
+            if( random.nextInt(100)<90 )
+            {
+                if(random.nextInt(100)<50)
+                {
+
+                } else
+                {
+
+                }
+            }
+        }
+        
+        if(processedChordOscEnvelope>0.03f)
+            chordWasAudible=true;
+        
+        //END OF Chord randomization
+
+        
+        //START OF ExtensionOne randomization
+        
+        if(processedExtensionOneOscEnvelope<0.03f && extensionOneWasAudible)
+        {
+
+            extensionOneWasAudible=false;
+            if( random.nextInt(100)<40 )
+            {
+                playExtensionOne = true;
+                if(random.nextInt(100)<50)
+                {
+                    if(random.nextInt(100)<50)
+                    {
+                        extensionOsc1.setFrequency(extensionsFreq[0]);
+                        std::cout << "extension 1 is the first!\n\n";
+                        
+                    } else
+                    {
+                        extensionOsc1.setFrequency(extensionsFreq[1]);
+                        std::cout << "extension 1 is the second!\n\n";
+                    }
+                } else
+                {
+                    if(random.nextInt(100)<50)
+                    {
+                        extensionOsc1.setFrequency(rootFreq*3);
+                        std::cout << "extension 1 is the root!\n\n";
+                        
+                    } else
+                    {
+                        extensionOsc1.setFrequency(fifthFreq*3);
+                        std::cout << "extension 1 is the fifth!\n\n";
+                    }
+                    
+                }
+            }else
+                playExtensionOne = false;
+        }
+        
+        if(processedExtensionOneOscEnvelope>0.03f)
+            extensionOneWasAudible=true;
+        
+        //END OF ExtensionOne randomization
+        
+        
+        //START OF ExtensionTwo randomization
+        
+        if(processedExtensionTwoOscEnvelope<0.03f && extensionTwoWasAudible)
+        {
+
+            extensionTwoWasAudible=false;
+            if( random.nextInt(100)<40 )
+            {
+                playExtensionTwo = true;
+                if(random.nextInt(100)<50)
+                {
+                    if(random.nextInt(100)<50)
+                    {
+                        extensionOsc2.setFrequency(extensionsFreq[0]);
+                        std::cout << "extension 2 is the first!\n\n";
+                        
+                    } else
+                    {
+                        extensionOsc2.setFrequency(extensionsFreq[1]);
+                        std::cout << "extension 2 is the second!\n\n";
+                    }
+                } else
+                {
+                    if(random.nextInt(100)<50)
+                    {
+                        extensionOsc2.setFrequency(rootFreq*3);
+                        std::cout << "extension 2 is the root!\n\n";
+                        
+                    } else
+                    {
+                        extensionOsc2.setFrequency(fifthFreq*3);
+                        std::cout << "extension 2 is the fifth!\n\n";
+                    }
+                    
+                }
+            }else
+                playExtensionTwo = false;
+        }
+        
+        if(processedExtensionTwoOscEnvelope>0.03f)
+            extensionTwoWasAudible=true;
+        
+        //END OF Extension randomization
+
         
         /*--PROCESS smooth parameters--*/
 
         float bassGainSmoothedVal = smoothBassGain.getNextValue();
         float chordGainSmoothedVal = smoothChordGain.getNextValue();
+        float extensionGainSmoothedVal = smoothExtensionGain.getNextValue();
+
+        
         float reverbAmountSmoothedVal = smoothReverbAmount.getNextValue();
         float reverbSizeSmoothedVal = smoothReverbSize.getNextValue();
         
         
         //set global reverb
         
-        int revCurrentLevels = (reverbParams.wetLevel * reverbParams.roomSize); // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
+        float revCurrentLevels = (reverbAmountSmoothedVal * reverbSizeSmoothedVal); // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
         
         if(revCurrentLevels != revCheckLevels)
         {
@@ -300,7 +503,7 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
         
         float processedBassOsc = bassOsc.process();
-        float processedBassOscEnvelope =bassOscEnvelope.process();
+        processedBassOscEnvelope = bassOscEnvelope.process();
         processedBassOscEnvelope *= bassGainSmoothedVal;
         
         
@@ -308,26 +511,53 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         float processedChordOsc1 = chordOsc1.process();
         float processedChordOsc2 = chordOsc2.process();
         float processedChordOsc3 = chordOsc3.process();
+        float processedChordOsc4 = chordOsc4.process();
 
-        float processedChordOscEnvelope = chordOscEnvelope.process();
+        processedChordOscEnvelope = chordOscEnvelope.process();
         
         processedChordOscEnvelope *= chordGainSmoothedVal;
         
         
+        float processedExtensionOsc1 = extensionOsc1.process();
+        float processedExtensionOsc2 = extensionOsc2.process();
+
+
+        processedExtensionOneOscEnvelope = extensionOneOscEnvelope.process();
+        processedExtensionOneOscEnvelope *= extensionGainSmoothedVal;
+        
+        processedExtensionTwoOscEnvelope = extensionTwoOscEnvelope.process();
+        processedExtensionTwoOscEnvelope *= extensionGainSmoothedVal;
         
         
         processedBassOsc *= processedBassOscEnvelope;
         
-         processedChordOsc1 *= processedChordOscEnvelope;
-         processedChordOsc2 *= processedChordOscEnvelope;
-         processedChordOsc3 *= processedChordOscEnvelope;
+        processedChordOsc1 *= processedChordOscEnvelope;
+        processedChordOsc2 *= processedChordOscEnvelope;
+        processedChordOsc3 *= processedChordOscEnvelope;
+        processedChordOsc4 *= processedChordOscEnvelope;
+
+        processedExtensionOsc1 *= processedExtensionOneOscEnvelope;
+        processedExtensionOsc2 *= processedExtensionOneOscEnvelope;
+
         
+        //process and apply delays
+        float delayedExtensionOsc1 = extensionDelay.process(processedExtensionOsc1);
+        samples.push_back(delayedExtensionOsc1);
+
         
-       samples.push_back(processedBassOsc * 0.2);
+        samples.push_back(processedBassOsc);
+        
         samples.push_back(processedChordOsc1);
         samples.push_back(processedChordOsc2);
         samples.push_back(processedChordOsc3);
+        samples.push_back(processedChordOsc4);
+        if (playExtensionOne) samples.push_back(processedExtensionOsc1);
+        //if (playExtensionTwo) samples.push_back(processedExtensionOsc2);
+
         
+        
+        
+
         //samples.push_back(myOsc5.process());
         //samples.push_back(myOsc6.process());
 
@@ -355,7 +585,9 @@ void HummingBotAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     
     //apply global reverb
-       generalReverb.processStereo(leftChannel, rightChannel, numSamples);
+    generalReverb.processStereo(leftChannel, rightChannel, numSamples);
+    
+    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
 }
 
