@@ -14,7 +14,7 @@ class MidiProcessor
 {
 public:
     
-    void process(juce::MidiBuffer& midiMessages, int* currentHarmony, int* chordDegree)
+    void process(juce::MidiBuffer& midiMessages, int* currentHarmony, int* chordDegree, bool* allowSynthNotes)
     {
         juce::MidiBuffer::Iterator it(midiMessages);
         juce::MidiMessage currentMessage;
@@ -33,6 +33,7 @@ public:
             if (currentMessage.getNoteNumber() == 36 && currentMessage.getFloatVelocity()!=0 )
             {
                 enterHarmonyMode = 1;
+                *allowSynthNotes = false;
                  if(debug) std::cout << "enterHarmonyMode = " << enterHarmonyMode<< "\n";
             }
             
@@ -40,7 +41,10 @@ public:
             if (currentMessage.getNoteNumber() == 36 && currentMessage.getFloatVelocity()==0 )
             {
                 enterHarmonyMode = 0;
+                *allowSynthNotes = true;
+
                  if(debug) std::cout << "enterHarmonyMode = " << enterHarmonyMode<< "\n";
+                
             }
             
             
