@@ -17,6 +17,7 @@
 #include "HumanSynthesiser.h"
 #include "Oscillators.h"
 #include "debugResolutionTool.h"
+#include "DelayLine.h";
 
 //==============================================================================
 /**
@@ -86,8 +87,14 @@ private:
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
     
+    bool allowSynthNotes = true;
+    bool * allowSynthNotesPointer = &allowSynthNotes;
+    
     std::vector<float> samples;
     std::vector<std::string> possibleHarmonies;
+    
+    Envelope concludeOldHarmony;
+    Envelope beginNewHarmony;
     
 
     /*--HARMONY variables--*/
@@ -96,12 +103,12 @@ private:
     int root = 0;
     int fifth = 7;
     int guideTones[2] = {4,11};
-    int extensions[3] = {2,5,9};
+    int extensions[2] = {2,10};
     
     float rootFreq;
     float fifthFreq;
     float guideTonesFreq[2];
-    float extensionsFreq[3];
+    float extensionsFreq[2];
 
     
     int chordDegree;
@@ -109,13 +116,37 @@ private:
     
     bool prioritiseKeyChange;
 
+    bool bassIsRoot = true;
+    bool bassWasAudible = false;
+    bool bassFirstCycle = true;
+    
+    bool chordWasAudible = false;
+    bool chordFirstCycle = true;
+    
+    bool extensionOneWasAudible = false;
+    bool extensionOneFirstCycle = true;
+    bool playExtensionOne = true;
+    
+    bool extensionTwoWasAudible = false;
+    bool extensionTwoFirstCycle = true;
+    bool playExtensionTwo = true;
+
+
+    
+    float processedBassOscEnvelope;
+    float processedChordOscEnvelope;
+    float processedExtensionOneOscEnvelope;
+    float processedExtensionTwoOscEnvelope;
+
+    
+    
     //chordDegreePointer = &chordDegree;
 
     
     /*--GENERAL oscillators--*/
 
     TriOsc bassOsc;
-    SineOsc chordOsc1, chordOsc2, chordOsc3;
+    SineOsc chordOsc1, chordOsc2, chordOsc3, chordOsc4;
     SineOsc extensionOsc1, extensionOsc2;
 
 
@@ -123,7 +154,9 @@ private:
     
     Envelope chordOscEnvelope;
     Envelope bassOscEnvelope;
-    Envelope extentionOscEnvelope;
+    Envelope extensionOneOscEnvelope;
+    Envelope extensionTwoOscEnvelope;
+
 
     
     /*--VRBs & DLYs--*/
@@ -131,6 +164,7 @@ private:
     juce::Reverb::Parameters reverbParams;
     float revCheckLevels; // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
 
+    DelayLine extensionDelay;
     
 
 
@@ -147,6 +181,9 @@ private:
     
     std::atomic<float>* chordGainParam;
     juce::SmoothedValue<float> smoothChordGain;
+    
+    std::atomic<float>* extensionGainParam;
+    juce::SmoothedValue<float> smoothExtensionGain;
     
     
     std::atomic<float>* reverbAmountParam;
@@ -181,6 +218,7 @@ private:
     DebugResolutionTool drt;//------------->generic debug tool
     float sr;//---------------------------->project sample rate
     float genProtectionGain = 0.3f;//------>protection gain applied at the and of the general DSP loop
+    juce::Random random;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HummingBotAudioProcessor)
