@@ -29,6 +29,8 @@ public:
         if(debug)std::cout << debugLine1.nextStep("Class Envelope Debug == seconds ", seconds);
 
         sampleRate = sr;
+        nodeName = "waiting to start";
+
     }
     
     ///sets the name tag of the envelope for debugging and tracing
@@ -152,18 +154,23 @@ public:
         return gain;
     }
     
-    ///restart the envelope clock, but only if the envelope has completed its cycle
+    ///restart the envelope cycle, but only if the envelope has completed its cycle
     void trigger(){
         if (gain == 0.0f)
         {
             timeFlow = 0.0f;//-----Resets the count of seconds, retriggering the envelope
             gain = 0.0f;//---------Makes sure that we are starting from a gain of 0
+            nodeName = "waiting to start";
+
         }
     }
     
+    ///restart the envelope cycle, at any moment
     void reset()
     {
-        timeFlow = 0.0f;
+        timeFlow = 0.0f;//-----Resets the count of seconds, retriggering the envelope
+        gain = 0.0001f;//---------Makes sure that we are starting from a gain of 0
+        nodeName = "waiting to start";
     }
     /**
      sets all the needed parameters for the envelope
