@@ -93,6 +93,10 @@ private:
     std::vector<float> samples;
     std::vector<std::string> possibleHarmonies;
     
+    
+    //HARMONY SWAP VARIABLES
+    float harmonySwitchingTime = 1.0f;
+    
     Envelope concludeOldHarmony;
     float processedConcludeOldHarmony = 0.2f;
     bool concludingOldHarmony = false;
@@ -102,7 +106,7 @@ private:
     bool beginningNewHarmony = false;
     
     
-    bool beginHarmonySwitch;
+    bool beginHarmonySwitch = false;
     bool* beginHarmonySwitchPointer = &beginHarmonySwitch;
     
     
@@ -112,7 +116,7 @@ private:
     int root = 0;
     int fifth = 7;
     int guideTones[2] = {4,11};
-    int extensions[2] = {2,10};
+    int extensions[2] = {2,9};
     
     float rootFreq;
     float fifthFreq;
@@ -173,6 +177,10 @@ private:
     juce::Reverb::Parameters reverbParams;
     float revCheckLevels; // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
 
+    
+    juce::Reverb synthReverb;
+    juce::Reverb::Parameters synthReverbParams;
+    
     DelayLine extensionDelay;
     
 
@@ -209,6 +217,8 @@ private:
     
     juce::AudioProcessorValueTreeState synthParameters;
     
+    std::atomic<float>* oscShapeParam;
+    
     std::atomic<float>* detuneParam;
     
     std::atomic<float>* synthVoiceGainParam;
@@ -219,7 +229,8 @@ private:
     std::atomic<float>* ampSustainParam;
     std::atomic<float>* ampReleaseParam;
 
-    
+    std::atomic<float>* delayTimeParam;
+    std::atomic<float>* delayFeedbackParam;
     
 
     /*--MISC--*/
