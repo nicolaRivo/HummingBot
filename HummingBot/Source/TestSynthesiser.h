@@ -14,6 +14,7 @@
 #include <vector>
 #include "AddSynth.h"
 #include "PluginProcessor.h"
+#include "DelayLine.h"
 
 // ===========================
 // ===========================
@@ -76,10 +77,25 @@ public:
     
     void init (float sampleRate)
     {
-        myOsc.setSampleRate(sampleRate);
+        sawToothOsc.setSampleRate(sampleRate);
+        sawToothDetuneOsc.setSampleRate(sampleRate);
 
-        detuneOsc.setSampleRate(sampleRate);
-
+        sineOsc.setSampleRate(sampleRate);
+        sineDetuneOsc.setSampleRate(sampleRate);
+        
+        squareOsc.setSampleRate(sampleRate);
+        squareDetuneOsc.setSampleRate(sampleRate);
+        
+        triOsc.setSampleRate(sampleRate);
+        triDetuneOsc.setSampleRate(sampleRate);
+        
+        delay.setSizeInSamples(sampleRate * 5);
+        delay.setDelayTimeInSamples(delayTime);
+        delay.setFeedbackAmt(delayFeedback);
+        
+        
+        
+        
         env.setSampleRate(sampleRate);
     }
     
@@ -103,6 +119,18 @@ public:
         
     }
     
+    void setOscShape (int _oscShape)
+    {
+        oscShape = _oscShape;
+    }
+    
+    void setDelay (float _delayTime, float _delayFeedback)
+    {
+        delayTime = _delayTime;
+        delayFeedback = _delayFeedback;
+    }
+    
+    
     
     void startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound*, int /*currentPitchWheelPosition*/) override
     {
@@ -120,8 +148,12 @@ public:
             env.setParameters(envParams);
             
             
-            myOsc.setFrequency(freq);
-
+            sawToothOsc.setFrequency(freq);
+            sineOsc.setFrequency(freq);
+            squareOsc.setFrequency(freq);
+            triOsc.setFrequency(freq);
+            
+            
             env.reset();
             env.noteOn();
         }
@@ -157,7 +189,11 @@ public:
         if (playing) // check to see if this voice should be playing
         {
             
-            detuneOsc.setFrequency(freq - detuneAmount);
+            sawToothDetuneOsc.setFrequency(freq - detuneAmount);
+            sineDetuneOsc.setFrequency(freq - detuneAmount);
+            squareDetuneOsc.setFrequency(freq - detuneAmount);
+            triDetuneOsc.setFrequency(freq - detuneAmount);
+
 
             
             
@@ -168,17 +204,55 @@ public:
 //                // An example white noise generater as a placeholder - replace with your own code
 //
                 float envVal = env.getNextSample();
-                float currentSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
-                currentSample = (myOsc.process() + detuneOsc.process()) / 2.0f * envVal;
+                std::vector<float> currentSample;
+                float finalSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
+            
+
+            
+                switch (oscShape)
+                {
+                    case 0:
+                        currentSample.push_back((sawToothOsc.process() + sawToothDetuneOsc.process()) / 2.0f * envVal);
+                        break;
+                    case 1:
+                        currentSample.push_back((squareOsc.process() + squareDetuneOsc.process()) / 2.0f * envVal);
+                        break;
+                    case 2:
+                        currentSample.push_back((sineOsc.process() + sineDetuneOsc.process()) / 2.0f * envVal);
+                        break;
+                    case 3:
+                        currentSample.push_back((triOsc.process() + triDetuneOsc.process()) / 2.0f * envVal);
+                        break;
+                }
+                    
+                
+                //if delay time is not zero, process the delay line as well
 
                 
-                currentSample *= synthVoiceGain;
+                for(int i = 0; i < currentSample.size(); i++)
+                {
+                    finalSample += currentSample[i];
+                }
+                
+                finalSample /= currentSample.size();
+                
+                finalSample *= synthVoiceGain;
+                
+                
+                
+//                if (delayTime != 0)
+//                {
+//                    finalSample +=delay.process(finalSample);
+//                    finalSample /=2;
+//                }
+                
+                
                 
                 // for each channel, write the currentSample float to the output
                 for (int chan = 0; chan<outputBuffer.getNumChannels(); chan++)
                 {
                     // The output sample is scaled by synthProtectionGain so that it is not too loud by default
-                    outputBuffer.addSample (chan, sampleIndex, currentSample * synthProtectionGain);
+                    outputBuffer.addSample (chan, sampleIndex, finalSample * synthProtectionGain);
                 }
                 
                 if (ending)
@@ -216,8 +290,13 @@ private:
     bool playing = false;
     bool ending = false;
     
-    SawToothOsc myOsc, detuneOsc;
     
+    
+    SawToothOsc sawToothOsc, sawToothDetuneOsc;
+    SquareOsc squareOsc, squareDetuneOsc;
+    SineOsc sineOsc, sineDetuneOsc;
+    TriOsc triOsc, triDetuneOsc;
+    int oscShape = 1;
     
     
     float freq ;//---------------the frequecy value that will be used to generate the synthesiser note
@@ -232,11 +311,14 @@ private:
     float sustain;
     float release;
     
+    DelayLine delay;
+    float delayTime = 0.0f;
+    float delayFeedback = 0.0f;
+    
+    
     bool allowSynthNotes = true;
     
-    
     juce::ADSR env;
-    
     
     float synthProtectionGain = 0.3f;
 
