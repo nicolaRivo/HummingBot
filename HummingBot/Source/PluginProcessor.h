@@ -12,12 +12,10 @@
 #include <map>          //needed to generate a map for key signature accidentals
 #include "MidiProcessor.h"
 #include "harmonyResolver.h"
-#include "ComputerSynthesiser.h"
 #include "TestSynthesiser.h"
-#include "HumanSynthesiser.h"
 #include "Oscillators.h"
 #include "debugResolutionTool.h"
-#include "DelayLine.h";
+#include "DelayLine.h"
 
 //==============================================================================
 /**
@@ -86,15 +84,25 @@ private:
     int testVoiceCount = 16;
     MidiProcessor midiProcessor;
     HarmonyResolver hr;
+    bool debug = 0;
     
     bool allowSynthNotes = true;
     bool * allowSynthNotesPointer = &allowSynthNotes;
     
-    std::vector<float> samples;
+    std::vector<float> samples;//Central samples
+    std::vector<float> leftSamples; //Right samples
+    std::vector<float> rightSamples; //Left samples
+
     std::vector<std::string> possibleHarmonies;
     
+
+    bool delayedExtensionOneIsOver = 1;
+    bool delayedExtensionTwoIsOver = 1;
     
     //HARMONY SWAP VARIABLES
+    bool harmonySwitchFirstCycle = false;
+    bool *harmonySwitchFirstCyclePointer = &harmonySwitchFirstCycle;
+    
     float harmonySwitchingTime = 1.0f;
     
     Envelope concludeOldHarmony;
@@ -129,31 +137,30 @@ private:
     
     bool prioritiseKeyChange;
 
+    
+    /*--HARMONY SWAP variables--*/
+
     bool bassIsRoot = true;
     bool bassWasAudible = false;
     bool bassFirstCycle = true;
     
-    bool chordWasAudible = false;
-    bool chordFirstCycle = true;
+    bool chordWasAudible = true;
     
-    bool extensionOneWasAudible = false;
-    bool extensionOneFirstCycle = true;
-    bool playExtensionOne = true;
+    bool extensionOneWasAudible = true;
     
-    bool extensionTwoWasAudible = false;
+    bool extensionTwoWasAudible = true;
     bool extensionTwoFirstCycle = true;
-    bool playExtensionTwo = true;
-
-
     
+
+
+    /*--HARMONY Processed envelopes--*/
+
     float processedBassOscEnvelope;
     float processedChordOscEnvelope;
     float processedExtensionOneOscEnvelope;
     float processedExtensionTwoOscEnvelope;
 
     
-    
-    //chordDegreePointer = &chordDegree;
 
     
     /*--GENERAL oscillators--*/
@@ -164,24 +171,38 @@ private:
 
 
     /*--GENERAL envelopes--*/
+    //these envelopes bring different parts of the arrangement on and off slowly overtime to contribute to the generative nature of the accompainment music
     
-    Envelope chordOscEnvelope;
     Envelope bassOscEnvelope;
+    Envelope chordOscEnvelope;
     Envelope extensionOneOscEnvelope;
     Envelope extensionTwoOscEnvelope;
 
+    
+    /*--GENERAL LFOs--*/
+
+    LFO extensionOneDelayPanLFO;
+    LFO extensionTwoDelayPanLFO;
+    LFO chordsFilterLFO;
+    
+    
+    /*--GENERAL Filters--*/
+    
+    juce::IIRFilter chordsFilter;
 
     
-    /*--VRBs & DLYs--*/
+    /*--GENERAL VRBs & DLYs--*/
     juce::Reverb generalReverb;
     juce::Reverb::Parameters reverbParams;
-    float revCheckLevels; // OPTIMIZATION, MIGHT NOT WORK YET: initialize value to be check in order to update the reverb parameters
-
+    bool includeSynthInReverb = 1;
+    float revCheckLevels; // this is a useful optimization variable, eventually it could be extended to all the parameters. Is used in the PluginProcessor.cpp to hold the value of all the reverb parameters multipiled toghether. This is then compared to another similar snapshot of all the reverb parameters and if the two values are identical, it means that the system doesn't have to update the parameters each cycle of the DSP loop
     
     juce::Reverb synthReverb;
     juce::Reverb::Parameters synthReverbParams;
     
-    DelayLine extensionDelay;
+    DelayLine extensionOneDelay;
+    DelayLine extensionTwoDelay;
+
     
 
 
@@ -215,23 +236,30 @@ private:
 
     /*--SYNTH parameters--*/
     
-    juce::AudioProcessorValueTreeState synthParameters;
+    //juce::AudioProcessorValueTreeState synthParameters;
     
     std::atomic<float>* oscShapeParam;
     
     std::atomic<float>* detuneParam;
     
     std::atomic<float>* synthVoiceGainParam;
+    juce::SmoothedValue<float> smoothSynthVoiceGain;
 
     
     std::atomic<float>* ampAttackParam;
     std::atomic<float>* ampDecayParam;
     std::atomic<float>* ampSustainParam;
     std::atomic<float>* ampReleaseParam;
+    std::atomic<float>* includeSynthInReverbParam;
 
-    std::atomic<float>* delayTimeParam;
-    std::atomic<float>* delayFeedbackParam;
     
+//    std::atomic<float>* synthReverbDryParam;
+//    std::atomic<float>* synthReverbWetParam;
+//    std::atomic<float>* synthReverbSizeParam;
+//
+//    std::atomic<float>* delayTimeParam;
+//    std::atomic<float>* delayFeedbackParam;
+//
 
     /*--MISC--*/
     double smoothRampingTime = 0.1;//------>time ramp for smothed values

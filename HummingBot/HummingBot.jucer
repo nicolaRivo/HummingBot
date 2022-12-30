@@ -6,24 +6,14 @@
               pluginFormats="buildVST3">
   <MAINGROUP id="t8Ykd4" name="HummingBot">
     <GROUP id="{62D68105-60D2-D0DF-93AB-CEF2DC08FCBE}" name="Source">
-      <FILE id="BkbsSW" name="computerSynthesiser.h" compile="0" resource="0"
-            file="Source/computerSynthesiser.h"/>
-      <FILE id="PCqZbN" name="humanSynthesiser.h" compile="0" resource="0"
-            file="Source/humanSynthesiser.h"/>
-      <FILE id="Crw8V0" name="AddSynth.h" compile="0" resource="0" file="Source/AddSynth.h"/>
-      <FILE id="fc8l9u" name="Chorus.h" compile="0" resource="0" file="Source/Chorus.h"/>
       <FILE id="jmv7cw" name="debugResolutionTool.h" compile="0" resource="0"
             file="Source/debugResolutionTool.h"/>
-      <FILE id="sVzCWo" name="DelayedOscArray.h" compile="0" resource="0"
-            file="Source/DelayedOscArray.h"/>
       <FILE id="cNfO55" name="MidiProcessor.h" compile="0" resource="0" file="Source/MidiProcessor.h"/>
       <FILE id="IdRRa1" name="DelayLine.h" compile="0" resource="0" file="Source/DelayLine.h"/>
       <FILE id="YNNUzh" name="Envelope.h" compile="0" resource="0" file="Source/Envelope.h"/>
       <FILE id="UHugIC" name="harmonyResolver.h" compile="0" resource="0"
             file="Source/harmonyResolver.h"/>
       <FILE id="Q5MQj0" name="utilities.h" compile="0" resource="0" file="Source/utilities.h"/>
-      <FILE id="n5rLJ6" name="FilterSynth.h" compile="0" resource="0" file="Source/FilterSynth.h"/>
-      <FILE id="KVyXEX" name="FmSineOsc.h" compile="0" resource="0" file="Source/FmSineOsc.h"/>
       <FILE id="BS3gLH" name="Harmonizer.h" compile="0" resource="0" file="Source/Harmonizer.h"/>
       <FILE id="dB94UP" name="Oscillators.h" compile="0" resource="0" file="Source/Oscillators.h"/>
       <FILE id="rsPOSg" name="TestSynthesiser.h" compile="0" resource="0"

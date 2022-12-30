@@ -204,6 +204,8 @@ public:
 //                // An example white noise generater as a placeholder - replace with your own code
 //
                 float envVal = env.getNextSample();
+                float delayVal = 0;
+                
                 std::vector<float> currentSample;
                 float finalSample = 0.0f;//main sample. It will eventually hold together all the samples end be output to the audioBuffer
             
@@ -242,11 +244,23 @@ public:
                 
 //                if (delayTime != 0)
 //                {
-//                    finalSample +=delay.process(finalSample);
+//                    delayVal = delay.process(finalSample);
+//                    finalSample += delayVal;
 //                    finalSample /=2;
 //                }
+//                
+//                
+//                synthReverbParams.roomSize = *synthReverbDryParam;
+//                synthReverbParams.wetLevel = *synthReverbWetParam;
+//                synthReverbParams.dryLevel = *synthReverbSizeParam;
+//
+//
+//
+//                synthReverb.setParameters(synthReverbParams);
+//
+                //synthReverb.
                 
-                
+
                 
                 // for each channel, write the currentSample float to the output
                 for (int chan = 0; chan<outputBuffer.getNumChannels(); chan++)
@@ -255,9 +269,19 @@ public:
                     outputBuffer.addSample (chan, sampleIndex, finalSample * synthProtectionGain);
                 }
                 
+//                synthReverbParameters.wetLevel = 1.0 ;
+//                synthReverbParameters.dryLevel = 1.0 ;
+//                synthReverbParameters.roomSize = 1.0 ;
+//
+//
+//                synthReverb.setParameters(synthReverbParameters);
+//
+//                synthReverb.processStereo(leftChannel, rightChannel, numSamples);
+//
+                
                 if (ending)
                 {
-                    if (envVal <0.00001f)
+                    if (envVal <0.00001f && delayVal <0.00001f)
                     {
                         clearCurrentNote();
                         playing = false;
@@ -291,6 +315,9 @@ private:
     bool ending = false;
     
     
+    juce::Reverb synthReverb;
+    juce::Reverb::Parameters synthReverbParameters;
+
     
     SawToothOsc sawToothOsc, sawToothDetuneOsc;
     SquareOsc squareOsc, squareDetuneOsc;

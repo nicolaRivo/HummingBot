@@ -165,11 +165,13 @@ public:
         }
     }
     
-    ///restart the envelope cycle, at any moment
-    void reset()
+    /**restart the envelope cycle, at any moment
+     @param gain the gain can be reset to a specific value if needed, it might be useful if you need an enveloope that always starts from the sustain node.
+     */
+    void reset(float _gain = 0.000001f)
     {
         timeFlow = 0.0f;//-----Resets the count of seconds, retriggering the envelope
-        gain = 0.0001f;//---------Makes sure that we are starting from a gain of 0
+        gain = _gain;//---------Makes sure that we are starting from a gain of 0 (or a custom valule)
         nodeName = "waiting to start";
     }
     /**
